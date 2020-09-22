@@ -588,11 +588,11 @@ build_srpm(){
     sed -i '/with_protobuf/,/endif/d' mysql-shell.spec
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.20/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.21/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.20/g' mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.21/g' mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     mv mysql-shell.spec percona-mysql-shell.spec
@@ -919,13 +919,13 @@ ARCH=
 OS=
 PROTOBUF_REPO="https://github.com/protocolbuffers/protobuf.git"
 SHELL_REPO="https://github.com/mysql/mysql-shell.git"
-SHELL_BRANCH="8.0.20"
-PROTOBUF_BRANCH=v3.6.1
+SHELL_BRANCH="8.0.21"
+PROTOBUF_BRANCH=v3.11.4
 INSTALL=0
 RPM_RELEASE=1
 DEB_RELEASE=1
 REVISION=0
-BRANCH="release-8.0.20-11"
+BRANCH="release-8.0.21-12"
 RPM_RELEASE=1
 DEB_RELEASE=1
 YASSL=0
