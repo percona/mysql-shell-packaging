@@ -177,16 +177,16 @@ get_database(){
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
         else
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
         fi
     else
         #uncomment once boost downloads are fixed
         #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
+        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
     fi
     cmake --build . --target mysqlclient
     cmake --build . --target mysqlxclient
@@ -767,7 +767,7 @@ build_deb(){
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1:-DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    sed -i "s:VERBOSE=1:-DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
@@ -840,6 +840,7 @@ build_tarball(){
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
                 -DWITH_PROTOBUF=bundled \
+		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system
@@ -859,6 +860,7 @@ build_tarball(){
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python37/include/python3.7m \
                 -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
+		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DBUNDLED_PYTHON_DIR=/usr/local/python37/
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -870,6 +872,7 @@ build_tarball(){
                 -DHAVE_PYTHON=2 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
+		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DWITH_PROTOBUF=bundled \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
@@ -887,6 +890,7 @@ build_tarball(){
             -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
             -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj \
             -DHAVE_PYTHON=1 \
+            -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
             -DWITH_STATIC_LINKING=ON
     fi
