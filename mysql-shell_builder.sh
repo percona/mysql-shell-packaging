@@ -167,11 +167,11 @@ get_database(){
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
     fi
     mkdir bld
-    wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz
-    tar -xvzf boost_1_72_0.tar.gz
+    wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz
+    tar -xvzf boost_1_73_0.tar.gz
     mkdir -p $WORKDIR/boost
-    mv boost_1_72_0/* $WORKDIR/boost/
-    rm -rf boost_1_72_0 boost_1_72_0.tar.gz
+    mv boost_1_73_0/* $WORKDIR/boost/
+    rm -rf boost_1_73_0 boost_1_73_0.tar.gz
     cd bld
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 6 ]; then
@@ -250,9 +250,9 @@ get_sources(){
         cd packaging/debian/
         cmake .
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPACKAGE_YEAR=2020
     else
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPACKAGE_YEAR=2020
     fi
     sed -i 's/-src//g' CPack*
     cpack -G TGZ --config CPackSourceConfig.cmake
@@ -588,12 +588,12 @@ build_srpm(){
     sed -i '/with_protobuf/,/endif/d' mysql-shell.spec
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.21/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.22/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.21/g' mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.22/g' mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DPACKAGE_YEAR=2020 :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     mv mysql-shell.spec percona-mysql-shell.spec
     cd ${WORKDIR}
@@ -767,7 +767,7 @@ build_deb(){
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1:-DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    sed -i "s:VERBOSE=1: -DPACKAGE_YEAR=2020 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
@@ -843,6 +843,7 @@ build_tarball(){
 		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
+		-DPACKAGE_YEAR=2020 \
                 -DBUNDLED_OPENSSL_DIR=system
         elif [ $RHEL = 7 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -861,7 +862,8 @@ build_tarball(){
                 -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
 		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python37/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python37/ \
+		-DPACKAGE_YEAR=2020
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
@@ -880,7 +882,8 @@ build_tarball(){
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python37/include/python3.7m \
                 -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python37/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python37/ \
+		-DPACKAGE_YEAR=2020
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -892,7 +895,8 @@ build_tarball(){
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
-            -DWITH_STATIC_LINKING=ON
+            -DWITH_STATIC_LINKING=ON \
+	    -DPACKAGE_YEAR=2020
     fi
     make -j4
     mkdir ${NAME}-${VERSION}-${OS_NAME}
@@ -923,13 +927,13 @@ ARCH=
 OS=
 PROTOBUF_REPO="https://github.com/protocolbuffers/protobuf.git"
 SHELL_REPO="https://github.com/mysql/mysql-shell.git"
-SHELL_BRANCH="8.0.21"
+SHELL_BRANCH="8.0.22"
 PROTOBUF_BRANCH=v3.11.4
 INSTALL=0
 RPM_RELEASE=1
 DEB_RELEASE=1
 REVISION=0
-BRANCH="release-8.0.21-12"
+BRANCH="release-8.0.22-13"
 RPM_RELEASE=1
 DEB_RELEASE=1
 YASSL=0
