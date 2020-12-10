@@ -109,7 +109,7 @@ get_protobuf(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
-            source /opt/rh/rh-python36/enable
+            source /opt/rh/rh-python38/enable
         fi
     fi
     cd "${WORKDIR}"
@@ -130,7 +130,7 @@ get_protobuf(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
-            source /opt/rh/rh-python36/enable
+            source /opt/rh/rh-python38/enable
         fi
     fi
     bash -x autogen.sh
@@ -146,15 +146,19 @@ get_database(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
-            source /opt/rh/rh-python36/enable
+            source /opt/rh/rh-python38/enable
         fi
     fi
     cd "${WORKDIR}"
+    if [ -d percona-server ]; then
+        rm -rf percona-server
+    fi
     git clone "${REPO}"
     retval=$?
     if [ $retval != 0 ]
     then
         echo "There were some issues during repo cloning from github. Please retry one more time"
+	exit 1
     fi
     repo_name=$(echo $REPO | awk -F'/' '{print $NF}' | awk -F'.' '{print $1}')
     cd $repo_name
@@ -213,7 +217,7 @@ get_sources(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
-            source /opt/rh/rh-python36/enable
+            source /opt/rh/rh-python38/enable
         fi
     fi
     git clone "$SHELL_REPO"
@@ -288,12 +292,15 @@ build_oci_sdk(){
         if [ $RHEL = 7 ]; then
             pip install --upgrade pip
             pip install -r requirements.txt
+            pip install certifi || true
             pip install -e .
         else
-            pip3 install -r requirements.txt
-            pip3 install -e .
+                pip3.7 install -r requirements.txt
+                pip3.7 install -e .
+                pip3.7 install certifi || true
         fi
     fi
+    rm -f /oci_sdk/.gitignore
     mv oci_sdk ${WORKDIR}/
     cd ../
 }
@@ -321,8 +328,8 @@ build_python(){
     ./configure --prefix=/usr/local/python37 --with-openssl=/usr/local/openssl11 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python37/lib 
     make
     make install
-    ln -s /usr/local/python37/bin/*3.7* /usr/local/bin
-    ln -s /usr/local/python37/bin/*3.7* /usr/bin
+    ln -sf /usr/local/python37/bin/*3.7* /usr/local/bin
+    ln -sf /usr/local/python37/bin/*3.7* /usr/bin
     echo "/usr/local/python3.7/lib" > /etc/ld.so.conf.d/python-3.7.conf
     mv /usr/bin/python /usr/bin/python_back
     if [ -f /usr/bin/python2.7 ]; then
@@ -353,7 +360,9 @@ install_deps() {
         add_percona_yum_repo
         if [ $RHEL = 8 ]; then
             yum -y install dnf-plugins-core
-            yum config-manager --set-enabled PowerTools
+            yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
+	    yum -y install epel-release
+	    yum -y install git
             yum -y install binutils gcc gcc-c++ tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize 
             yum -y install automake autoconf cmake jemalloc jemalloc-devel
             yum -y install libaio-devel ncurses-devel numactl-devel readline-devel time
@@ -362,12 +371,17 @@ install_deps() {
             yum -y install gperf ncurses-devel perl
             yum -y install libcurl-devel
             yum -y install perl-Env perl-Data-Dumper perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 || true
-            yum -y install libicu-devel automake m4 libtool python2-devel zip rpmlint python3 python3-pip git python3-virtualenv 
+            yum -y install libicu-devel automake m4 libtool python2-devel zip rpmlint python3 python3-devel python3-pip git
+	    yum -y install python3-virtualenv || true
             yum -y install openldap-devel
+            #yum install -y python38 python38-devel python38-pip
             pip3 install --upgrade pip
             pip3 install virtualenv
-            build_oci_sdk
+            pip3 install certifi || true
+            build_python
+            #build_oci_sdk
         else
+            yum -y install git		
             yum -y install gcc openssl-devel bzip2-devel libffi libffi-devel
             yum -y install http://www.percona.com/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm || true
             yum -y install epel-release
@@ -375,13 +389,18 @@ install_deps() {
             yum -y install time zlib-devel libaio-devel bison cmake pam-devel libeatmydata jemalloc-devel
             yum -y install perl-Time-HiRes libcurl-devel openldap-devel unzip wget libcurl-devel
             yum -y install perl-Env perl-Data-Dumper perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 || true
-            yum -y install libicu-devel automake m4 libtool python-devel zip rpmlint python3-devel
+            yum -y install libicu-devel automake m4 libtool python-devel zip rpmlint
             until yum -y install centos-release-scl; do
                 echo "waiting"
                 sleep 1
             done
+            until yum -y install centos-release-scl-rh; do
+                echo "waiting"
+                sleep 1
+            done
+
             yum -y install  gcc-c++ devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3
-            yum -y install rh-python36
+            yum -y install rh-python38 rh-python38-devel rh-python38-pip
 
             alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake 10 \
 --slave /usr/local/bin/ctest ctest /usr/bin/ctest \
@@ -392,7 +411,9 @@ install_deps() {
 --slave /usr/local/bin/ctest ctest /usr/bin/ctest3 \
 --slave /usr/local/bin/cpack cpack /usr/bin/cpack3 \
 --slave /usr/local/bin/ccmake ccmake /usr/bin/ccmake3 
-            source /opt/rh/rh-python36/enable
+            source /opt/rh/rh-python38/enable
+            pip install certifi || true
+            pip install virtualenv || true
         fi
         if [ "x$RHEL" = "x6" ]; then
             yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm
@@ -418,15 +439,22 @@ install_deps() {
         if [ "x$RHEL" = "x7" ]; then
             sed -i '/#!\/bin\/bash/a exit 0' /usr/lib/rpm/brp-python-bytecompile
             build_python
+            pip install certifi || true
         fi
         if [ "x$RHEL" = "x6" ]; then
             pip3 install --upgrade pip
             pip3 install virtualenv
             build_oci_sdk
-        else
+        elif [ "x$RHEL" = "x7" ]; then
             pip install --upgrade pip
             pip install virtualenv
+            pip install certifi || true
             build_oci_sdk
+	else
+	    pip3.7 install --upgrade pip
+            pip3.7 install virtualenv
+            pip3.7 install certifi || true
+            #build_oci_sdk
         fi
     else
         apt-get -y install dirmngr || true
@@ -463,7 +491,7 @@ install_deps() {
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
         elif [ "x$OS_NAME" = "xfocal" ]; then
-	    apt-get -y install python3-mysqldb
+            apt-get -y install python3-mysqldb
             echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
             echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
             echo "deb http://archive.ubuntu.com/ubuntu bionic universe" >> /etc/apt/sources.list
@@ -474,7 +502,7 @@ install_deps() {
             sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic universe;;' /etc/apt/sources.list
             apt-get update
         else
-	    apt-get -y install python-mysqldb
+            apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
         fi
         apt-get -y install python python-dev
@@ -560,7 +588,7 @@ build_srpm(){
     fi
     if [ $RHEL != 8 ]; then
         source /opt/rh/devtoolset-7/enable
-        source /opt/rh/rh-python36/enable
+        source /opt/rh/rh-python38/enable
     fi
     cd $WORKDIR
     get_tar "source_tarball"
@@ -595,6 +623,9 @@ build_srpm(){
     sed -i 's/@MYSH_VERSION@/8.0.22/g' mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DPACKAGE_YEAR=2020 :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
+    sed -i '59,60d' mysql-shell.spec
+    sed -i "s:prompt/::" mysql-shell.spec
+
     mv mysql-shell.spec percona-mysql-shell.spec
     cd ${WORKDIR}
     #
@@ -650,7 +681,7 @@ build_rpm(){
     mv *.src.rpm rpmbuild/SRPMS
     if [ $RHEL != 8 ]; then
         source /opt/rh/devtoolset-7/enable
-        source /opt/rh/rh-python36/enable
+        source /opt/rh/rh-python38/enable
     fi
     get_protobuf
     get_database
@@ -658,7 +689,7 @@ build_rpm(){
     build_oci_sdk
     if [ $RHEL = 7 ]; then
         source /opt/rh/devtoolset-7/enable
-        source /opt/rh/rh-python36/enable
+        source /opt/rh/rh-python38/enable
     elif [ $RHEL = 6 ]; then
         source /opt/rh/devtoolset-7/enable
     fi
@@ -669,7 +700,7 @@ build_rpm(){
     elif [ ${RHEL} = 7 ]; then
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk"  --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -767,7 +798,7 @@ build_deb(){
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1: -DPACKAGE_YEAR=2020 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    sed -i "s:VERBOSE=1:-DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
@@ -840,10 +871,10 @@ build_tarball(){
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
                 -DWITH_PROTOBUF=bundled \
-		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
+                -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
-		-DPACKAGE_YEAR=2020 \
+                -DPACKAGE_YEAR=2020 \
                 -DBUNDLED_OPENSSL_DIR=system
         elif [ $RHEL = 7 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -861,9 +892,9 @@ build_tarball(){
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python37/include/python3.7m \
                 -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
+                -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DBUNDLED_PYTHON_DIR=/usr/local/python37/ \
-		-DPACKAGE_YEAR=2020
+                -DPACKAGE_YEAR=2020
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
@@ -874,7 +905,7 @@ build_tarball(){
                 -DHAVE_PYTHON=2 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
-		-DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
+                -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DWITH_PROTOBUF=bundled \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
@@ -883,7 +914,7 @@ build_tarball(){
                 -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
                 -DBUNDLED_PYTHON_DIR=/usr/local/python37/ \
-		-DPACKAGE_YEAR=2020
+                -DPACKAGE_YEAR=2020
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -896,7 +927,7 @@ build_tarball(){
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
             -DWITH_STATIC_LINKING=ON \
-	    -DPACKAGE_YEAR=2020
+            -DPACKAGE_YEAR=2020
     fi
     make -j4
     mkdir ${NAME}-${VERSION}-${OS_NAME}
