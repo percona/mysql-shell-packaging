@@ -104,6 +104,18 @@ EOL
     wget -qO - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add -
     return
 }
+get_cmake(){
+    cd ${WORKDIR}
+    apt -y purge cmake*
+    apt-get -y install build-essential
+    wget http://www.cmake.org/files/v3.6/cmake-3.6.3.tar.gz
+    tar xf cmake-3.6.3.tar.gz
+    cd cmake-3.6.3
+    ./configure
+    make
+    make install
+    cd ${WORKDIR}
+}
 get_protobuf(){
     MY_PATH=$(echo $PATH)
     if [ "x$OS" = "xrpm" ]; then
@@ -158,7 +170,7 @@ get_database(){
     if [ $retval != 0 ]
     then
         echo "There were some issues during repo cloning from github. Please retry one more time"
-	exit 1
+        exit 1
     fi
     repo_name=$(echo $REPO | awk -F'/' '{print $NF}' | awk -F'.' '{print $1}')
     cd $repo_name
@@ -171,7 +183,8 @@ get_database(){
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
     fi
     mkdir bld
-    wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz
+    wget https://jenkins.percona.com/downloads/boost/boost_1_73_0.tar.gz
+    #wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz
     tar -xvzf boost_1_73_0.tar.gz
     mkdir -p $WORKDIR/boost
     mv boost_1_73_0/* $WORKDIR/boost/
@@ -254,9 +267,9 @@ get_sources(){
         cd packaging/debian/
         cmake .
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPACKAGE_YEAR=2020
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo
     else
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DPACKAGE_YEAR=2020
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo
     fi
     sed -i 's/-src//g' CPack*
     cpack -G TGZ --config CPackSourceConfig.cmake
@@ -361,8 +374,8 @@ install_deps() {
         if [ $RHEL = 8 ]; then
             yum -y install dnf-plugins-core
             yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
-	    yum -y install epel-release
-	    yum -y install git
+            yum -y install epel-release
+            yum -y install git
             yum -y install binutils gcc gcc-c++ tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize 
             yum -y install automake autoconf cmake jemalloc jemalloc-devel
             yum -y install libaio-devel ncurses-devel numactl-devel readline-devel time
@@ -372,7 +385,7 @@ install_deps() {
             yum -y install libcurl-devel
             yum -y install perl-Env perl-Data-Dumper perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 || true
             yum -y install libicu-devel automake m4 libtool python2-devel zip rpmlint python3 python3-devel python3-pip git
-	    yum -y install python3-virtualenv || true
+            yum -y install python3-virtualenv || true
             yum -y install openldap-devel
             #yum install -y python38 python38-devel python38-pip
             pip3 install --upgrade pip
@@ -381,7 +394,7 @@ install_deps() {
             build_python
             #build_oci_sdk
         else
-            yum -y install git		
+            yum -y install git
             yum -y install gcc openssl-devel bzip2-devel libffi libffi-devel
             yum -y install http://www.percona.com/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm || true
             yum -y install epel-release
@@ -450,8 +463,8 @@ install_deps() {
             pip install virtualenv
             pip install certifi || true
             build_oci_sdk
-	else
-	    pip3.7 install --upgrade pip
+        else
+            pip3.7 install --upgrade pip
             pip3.7 install virtualenv
             pip3.7 install certifi || true
             #build_oci_sdk
@@ -505,9 +518,32 @@ install_deps() {
             apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
         fi
-        apt-get -y install python python-dev
-        apt-get -y install python27-dev
-        apt-get -y install python3 python3-pip
+	if [ "x$OS_NAME" = "xxenial" ]; then
+           add-apt-repository -y ppa:deadsnakes/ppa
+	   apt-get -y update
+	   apt-get -y install python3.6*
+	   update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 2
+	   update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
+	   update-alternatives --config python3
+	   update-alternatives --config python
+	   curl https://bootstrap.pypa.io/get-pip.py | python3.6
+	elif [ "x$OS_NAME" = "xstretch" ]; then
+           apt -y install apt-transport-https
+	   wget https://people.debian.org/~paravoid/python-all/unofficial-python-all.asc
+	   mv unofficial-python-all.asc /etc/apt/trusted.gpg.d/
+	   echo "deb http://people.debian.org/~paravoid/python-all $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/python-all.list
+	   apt update
+	   apt-get -y install python3.6*
+           update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 2
+           update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
+           update-alternatives --config python3
+           update-alternatives --config python
+           curl https://bootstrap.pypa.io/get-pip.py | python3.6
+        else
+            apt-get -y install python python-dev
+            apt-get -y install python27-dev
+            apt-get -y install python3 python3-pip
+	fi
         PIP_UTIL="pip3"
         if [ "x$OS_NAME" = "xstretch" ]; then
             PIP_UTIL="pip"
@@ -524,6 +560,9 @@ install_deps() {
         fi
         ${PIP_UTIL} install virtualenv || pip install virtualenv || pip3 install virtualenv || true
         build_oci_sdk
+        if [ "x$OS_NAME" = "xxenial" ]; then
+            get_cmake
+        fi
         
     fi
     if [ ! -d /usr/local/percona-subunit2junitxml ]; then
@@ -616,12 +655,12 @@ build_srpm(){
     sed -i '/with_protobuf/,/endif/d' mysql-shell.spec
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.22/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.23/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.22/g' mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DPACKAGE_YEAR=2020 :" mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.23/g' mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
@@ -739,6 +778,7 @@ build_source_deb(){
     cd mysql-shell-${VERSION}
     sed -i 's|Source: mysql-shell|Source: percona-mysql-shell|' debian/control
     sed -i 's|Package: mysql-shell|Package: percona-mysql-shell|' debian/control
+    sed -i 's|cmake (>= 2.8.5), ||' debian/control
     sed -i 's|mysql-shell|percona-mysql-shell|' debian/changelog
     sed -i 's|${misc:Depends},|${misc:Depends}, python2.7|' debian/control
     sed -i '17d' debian/control
@@ -874,7 +914,6 @@ build_tarball(){
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
-                -DPACKAGE_YEAR=2020 \
                 -DBUNDLED_OPENSSL_DIR=system
         elif [ $RHEL = 7 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -893,8 +932,7 @@ build_tarball(){
                 -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python37/ \
-                -DPACKAGE_YEAR=2020
+                -DBUNDLED_PYTHON_DIR=/usr/local/python37/
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
@@ -913,8 +951,7 @@ build_tarball(){
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python37/include/python3.7m \
                 -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python37/ \
-                -DPACKAGE_YEAR=2020
+                -DBUNDLED_PYTHON_DIR=/usr/local/python37/
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -926,8 +963,7 @@ build_tarball(){
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
-            -DWITH_STATIC_LINKING=ON \
-            -DPACKAGE_YEAR=2020
+            -DWITH_STATIC_LINKING=ON
     fi
     make -j4
     mkdir ${NAME}-${VERSION}-${OS_NAME}
@@ -958,13 +994,13 @@ ARCH=
 OS=
 PROTOBUF_REPO="https://github.com/protocolbuffers/protobuf.git"
 SHELL_REPO="https://github.com/mysql/mysql-shell.git"
-SHELL_BRANCH="8.0.22"
+SHELL_BRANCH="8.0.23"
 PROTOBUF_BRANCH=v3.11.4
 INSTALL=0
 RPM_RELEASE=1
 DEB_RELEASE=1
 REVISION=0
-BRANCH="release-8.0.22-13"
+BRANCH="release-8.0.23-14"
 RPM_RELEASE=1
 DEB_RELEASE=1
 YASSL=0
