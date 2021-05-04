@@ -263,6 +263,10 @@ get_sources(){
     echo "DESTINATION=${DESTINATION}" >> ../mysql-shell.properties
     TIMESTAMP=$(date "+%Y%m%d-%H%M%S")
     echo "UPLOAD=UPLOAD/${DESTINATION}/BUILDS/mysql-shell/mysql-shell-80/${SHELL_BRANCH}/${TIMESTAMP}" >> ../mysql-shell.properties
+    sed -i 's:3.6:3.4:g' CMakeLists.txt
+    sed -i 's:3.6:3.4:g' packaging/debian/CMakeLists.txt
+    sed -i 's:3.6:3.4:g' packaging/rpm/mysql-shell.spec.in
+    
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
         cmake .
@@ -518,33 +522,17 @@ install_deps() {
             apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
         fi
-	if [ "x$OS_NAME" = "xxenial" ]; then
-           add-apt-repository -y ppa:deadsnakes/ppa
-	   apt-get -y update
-	   apt-get -y install python3.6*
-	   update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 2
-	   update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
-	   update-alternatives --config python3
-	   update-alternatives --config python
-	   curl https://bootstrap.pypa.io/get-pip.py | python3.6
-	elif [ "x$OS_NAME" = "xstretch" ]; then
-           apt -y install apt-transport-https
-	   wget https://people.debian.org/~paravoid/python-all/unofficial-python-all.asc
-	   mv unofficial-python-all.asc /etc/apt/trusted.gpg.d/
-	   echo "deb http://people.debian.org/~paravoid/python-all $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/python-all.list
-	   apt update
-	   apt-get -y install python3.6*
-           update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 2
-           update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
-           update-alternatives --config python3
-           update-alternatives --config python
-           curl https://bootstrap.pypa.io/get-pip.py | python3.6
-        else
             apt-get -y install python python-dev
             apt-get -y install python27-dev
             apt-get -y install python3 python3-pip
-	fi
+	    apt-get -y install python3-dev || true
         PIP_UTIL="pip3"
+        if [ "x$OS_NAME" = "xxenial" ]; then
+            update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+	    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+	    curl  https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
+	    python get-pip.py
+	fi
         if [ "x$OS_NAME" = "xstretch" ]; then
             PIP_UTIL="pip"
             if [ ! -f /usr/bin/pip ]; then
