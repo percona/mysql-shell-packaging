@@ -745,8 +745,10 @@ build_rpm(){
     if [ ${RHEL} = 6 ]; then
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl11" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
+        source /opt/rh/devtoolset-10/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
+        source /opt/rh/gcc-toolset-10/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk"  --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
@@ -908,6 +910,12 @@ build_tarball(){
     mkdir bld
     cd bld
     if [ -f /etc/redhat-release ]; then
+        if [ $RHEL = 7 ]; then
+            source /opt/rh/devtoolset-10/enable
+	fi
+	if [ $RHEL = 8 ]; then
+	    source /opt/rh/gcc-toolset-10/enable
+	fi
         if [ $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
