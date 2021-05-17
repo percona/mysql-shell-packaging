@@ -642,6 +642,7 @@ build_srpm(){
     sed -i 's|%setup -q -n %{name}-|%setup -q -n mysql-shell-|' mysql-shell.spec
     sed -i '/with_protobuf/,/endif/d' mysql-shell.spec
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
+    sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
     sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.25/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
