@@ -191,6 +191,12 @@ get_database(){
     rm -rf boost_1_73_0 boost_1_73_0.tar.gz
     cd bld
     if [ "x$OS" = "xrpm" ]; then
+        if [ $RHEL = 7 ]; then
+            source /opt/rh/devtoolset-10/enable
+	fi
+	if [ $RHEL = 8 ]; then
+	    source /opt/rh/gcc-toolset-10/enable
+	fi
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
@@ -472,6 +478,19 @@ install_deps() {
             pip3.7 install virtualenv
             pip3.7 install certifi || true
             #build_oci_sdk
+        fi
+	if [ "x$RHEL" = "x7" ]; then
+            yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-gcc-c++ devtoolset-10-binutils devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel
+            yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-libasan-devel devtoolset-10-libubsan-devel
+            rm -f /usr/bin/cmake
+	    cp -p /usr/bin/cmake3 /usr/bin/cmake
+        fi
+        if [ "x$RHEL" = "x8" ]; then
+            yum -y install centos-release-stream
+            yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
+            yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
+            yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
+            yum -y remove centos-release-stream
         fi
     else
         apt-get -y install dirmngr || true
