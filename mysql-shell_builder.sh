@@ -421,6 +421,7 @@ install_deps() {
                 echo "waiting"
                 sleep 1
             done
+	fi
 	if [ "x$RHEL" = "x7" ]; then
             yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-gcc-c++ devtoolset-10-binutils devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel
             yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-libasan-devel devtoolset-10-libubsan-devel
