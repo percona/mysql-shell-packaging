@@ -397,6 +397,11 @@ install_deps() {
             yum -y install libicu-devel automake m4 libtool python2-devel zip rpmlint python3 python3-devel python3-pip git
             yum -y install python3-virtualenv || true
             yum -y install openldap-devel
+	    yum -y install centos-release-stream
+            yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
+            yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
+            yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
+            yum -y remove centos-release-stream
             #yum install -y python38 python38-devel python38-pip
             pip3 install --upgrade pip
             pip3 install virtualenv
@@ -421,7 +426,6 @@ install_deps() {
                 echo "waiting"
                 sleep 1
             done
-	fi
 	if [ "x$RHEL" = "x7" ]; then
             yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-gcc-c++ devtoolset-10-binutils devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel
             yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-libasan-devel devtoolset-10-libubsan-devel
