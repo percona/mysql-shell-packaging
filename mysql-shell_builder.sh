@@ -530,7 +530,7 @@ install_deps() {
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x$OS_NAME" = "xfocal" ]; then
+        elif [ "x$OS_NAME" = "xfocal" -o "x$OS_NAME" = "xbullseye" ]; then
             apt-get -y install python3-mysqldb
             echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
             echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
