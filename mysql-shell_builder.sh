@@ -220,9 +220,9 @@ get_database(){
 
 get_v8(){
     cd ${WORKDIR}
-    wget https://jenkins.percona.com/downloads/v8_6.7.288.46.tar.gz
-    tar -xzf v8_6.7.288.46.tar.gz
-    rm -rf v8_6.7.288.46.tar.gz
+    wget https://jenkins.percona.com/downloads/v8_8.5.210.20.tar.gz
+    tar -xzf v8_8.5.210.20.tar.gz
+    rm -rf v8_8.5.210.20.tar.gz
 }
 
 get_sources(){
