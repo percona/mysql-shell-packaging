@@ -220,9 +220,9 @@ get_database(){
 
 get_v8(){
     cd ${WORKDIR}
-    wget https://jenkins.percona.com/downloads/v8_6.7.288.46.tar.gz
-    tar -xzf v8_6.7.288.46.tar.gz
-    rm -rf v8_6.7.288.46.tar.gz
+    wget https://jenkins.percona.com/downloads/v8_8.5.210.20.tar.gz
+    tar -xzf v8_8.5.210.20.tar.gz
+    rm -rf v8_8.5.210.20.tar.gz
 }
 
 get_sources(){
@@ -277,9 +277,9 @@ get_sources(){
         cd packaging/debian/
         cmake .
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system
     else
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system
     fi
     sed -i 's/-src//g' CPack*
     cpack -G TGZ --config CPackSourceConfig.cmake
