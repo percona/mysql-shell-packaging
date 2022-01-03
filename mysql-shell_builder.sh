@@ -442,6 +442,7 @@ install_deps() {
             yum -y install  gcc-c++ devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3
             yum -y install rh-python38 rh-python38-devel rh-python38-pip
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
+	    yum -y install krb5-devel
             alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake 10 \
 --slave /usr/local/bin/ctest ctest /usr/bin/ctest \
 --slave /usr/local/bin/cpack cpack /usr/bin/cpack \
@@ -524,6 +525,7 @@ install_deps() {
         apt-get -y install libtirpc
         apt-get -y install patchelf
 	apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
+	apt-get 0y install libkrb5-dev
         
         if [ "x$OS_NAME" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
