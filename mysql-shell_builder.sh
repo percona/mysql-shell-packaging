@@ -108,7 +108,7 @@ get_cmake(){
     cd ${WORKDIR}
     apt -y purge cmake*
     apt-get -y install build-essential
-    wget http://www.cmake.org/files/v3.6/cmake-3.6.3.tar.gz
+    wget --no-check-certificate http://www.cmake.org/files/v3.6/cmake-3.6.3.tar.gz
     tar xf cmake-3.6.3.tar.gz
     cd cmake-3.6.3
     ./configure
@@ -183,7 +183,7 @@ get_database(){
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
     fi
     mkdir bld
-    wget https://jenkins.percona.com/downloads/boost/boost_1_73_0.tar.gz
+    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_73_0.tar.gz
     #wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz
     tar -xvzf boost_1_73_0.tar.gz
     mkdir -p $WORKDIR/boost
@@ -220,7 +220,7 @@ get_database(){
 
 get_v8(){
     cd ${WORKDIR}
-    wget https://jenkins.percona.com/downloads/v8_8.5.210.20.tar.gz
+    wget --no-check-certificate https://jenkins.percona.com/downloads/v8_8.5.210.20.tar.gz
     tar -xzf v8_8.5.210.20.tar.gz
     rm -rf v8_8.5.210.20.tar.gz
 }
@@ -343,7 +343,7 @@ get_system(){
 
 build_python(){
     cd ${WORKDIR}
-    wget https://www.python.org/ftp/python/3.7.5/Python-3.7.5.tgz
+    wget --no-check-certificate https://www.python.org/ftp/python/3.7.5/Python-3.7.5.tgz
     tar xzf Python-3.7.5.tgz
     cd Python-3.7.5
     sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl11/g' Modules/Setup.dist
@@ -463,7 +463,7 @@ install_deps() {
             yum install -y patchelf
             sed -i "668s:(void:(const void:" /usr/include/openssl/bio.h
             cd ${WORKDIR}
-            wget https://github.com/openssl/openssl/archive/OpenSSL_1_1_1d.tar.gz
+            wget --no-check-certificate https://github.com/openssl/openssl/archive/OpenSSL_1_1_1d.tar.gz
             tar -xvzf OpenSSL_1_1_1d.tar.gz
             cd openssl-OpenSSL_1_1_1d/
             ./config --prefix=/usr/local/openssl11 --openssldir=/usr/local/openssl11 shared zlib
@@ -501,7 +501,7 @@ install_deps() {
         apt-get update
         apt-get -y install dirmngr || true
         apt-get -y install lsb-release wget
-        wget https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
+        wget --no-check-certificate https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
         percona-release enable tools testing
         export DEBIAN_FRONTEND="noninteractive"
         export DIST="$(lsb_release -sc)"
