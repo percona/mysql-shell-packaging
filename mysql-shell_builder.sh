@@ -525,7 +525,7 @@ install_deps() {
         apt-get -y install libtirpc
         apt-get -y install patchelf
 	apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
-	apt-get 0y install libkrb5-dev
+	apt-get -y install libkrb5-dev
         
         if [ "x$OS_NAME" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
