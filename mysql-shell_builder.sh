@@ -526,6 +526,8 @@ install_deps() {
         apt-get -y install patchelf
 	apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
 	apt-get -y install libkrb5-dev
+        apt-get -y install gcc-8 g++-8
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
         
         if [ "x$OS_NAME" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
