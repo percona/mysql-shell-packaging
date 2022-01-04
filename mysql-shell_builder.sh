@@ -514,7 +514,7 @@ install_deps() {
         apt-get -y install psmisc
         apt-get -y install libsasl2-modules:amd64 || apt-get -y install libsasl2-modules
         apt-get -y install dh-systemd || true
-        apt-get -y install curl bison cmake perl libssl-dev gcc g++ libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk
+        apt-get -y install curl bison cmake perl libssl-dev libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk
         apt-get -y install lsb-release libmecab-dev libncurses5-dev libreadline-dev libpam-dev zlib1g-dev libcurl4-openssl-dev
         apt-get -y install libldap2-dev libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libsasl2-dev
         apt-get -y install libeatmydata
@@ -524,8 +524,15 @@ install_deps() {
         apt-get -y install libicu-dev pkg-config zip
         apt-get -y install libtirpc
         apt-get -y install patchelf
-	apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
-	apt-get -y install libkrb5-dev
+        apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
+        apt-get -y install libkrb5-dev
+        if [ x"${DIST}" = xbionic ]; then
+            apt-get -y install gcc-8 g++-8
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+        else
+            apt-get -y install gcc g++
+        fi
         
         if [ "x$OS_NAME" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
