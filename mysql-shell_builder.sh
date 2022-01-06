@@ -397,6 +397,7 @@ install_deps() {
             yum -y install libicu-devel automake m4 libtool python2-devel zip rpmlint python3 python3-devel python3-pip git
             yum -y install python3-virtualenv || true
             yum -y install openldap-devel
+	    yum -y install cyrus-sasl-devel cyrus-sasl-scram
 	    yum -y install centos-release-stream
             yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
             yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
