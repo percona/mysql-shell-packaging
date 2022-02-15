@@ -465,14 +465,14 @@ install_deps() {
             yum install -y patchelf
             sed -i "668s:(void:(const void:" /usr/include/openssl/bio.h
             cd ${WORKDIR}
-            wget --no-check-certificate https://github.com/openssl/openssl/archive/OpenSSL_1_1_1d.tar.gz
-            tar -xvzf OpenSSL_1_1_1d.tar.gz
-            cd openssl-OpenSSL_1_1_1d/
+            wget --no-check-certificate https://github.com/openssl/openssl/archive/OpenSSL_1_1_1m.tar.gz
+            tar -xvzf OpenSSL_1_1_1m.tar.gz
+            cd openssl-OpenSSL_1_1_1m/
             ./config --prefix=/usr/local/openssl11 --openssldir=/usr/local/openssl11 shared zlib
             make -j4
             make install
             cd ../
-            rm -rf OpenSSL_1_1_1d.tar.gz openssl-OpenSSL_1_1_1d
+            rm -rf OpenSSL_1_1_1d.tar.gz openssl-OpenSSL_1_1_1m
             echo "/usr/local/openssl11/lib" > /etc/ld.so.conf.d/openssl-1.1.1d.conf
             echo "include ld.so.conf.d/*.conf" > /etc/ld.so.conf
             ldconfig -v
