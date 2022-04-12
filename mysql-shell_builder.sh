@@ -270,7 +270,7 @@ get_sources(){
     TIMESTAMP=$(date "+%Y%m%d-%H%M%S")
     echo "UPLOAD=UPLOAD/${DESTINATION}/BUILDS/mysql-shell/mysql-shell-80/${SHELL_BRANCH}/${TIMESTAMP}" >> ../mysql-shell.properties
     sed -i 's:3.6:3.4:g' CMakeLists.txt
-    sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
+    #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
     sed -i 's:3.6:3.4:g' packaging/debian/CMakeLists.txt
     sed -i 's:3.6:3.4:g' packaging/rpm/mysql-shell.spec.in
     
