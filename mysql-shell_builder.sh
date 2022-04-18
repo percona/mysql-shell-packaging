@@ -590,6 +590,10 @@ install_deps() {
         fi
         
     fi
+    if [ "x$OS_NAME" = "xbionic" ]; then
+        apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
+	build_ssh
+    fi
     if [ ! -d /usr/local/percona-subunit2junitxml ]; then
         cd /usr/local
         git clone https://github.com/percona/percona-subunit2junitxml.git
@@ -638,6 +642,19 @@ get_deb_sources(){
     return
 }
 
+build_ssh(){
+    cd "${WORKDIR}"
+    wget http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.3.orig.tar.xz
+    tar -xvf libssh_0.9.3.orig.tar.xz
+    cd libssh-0.9.3/
+    mkdir build
+    cd build
+    cmake  -Wno-error-implicit-function-declaration -DUNIT_TESTING=ON -DWITH_GCRYPT=ON  -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
+    make
+    make install
+    cd ${WORKDIR}
+}
+
 build_srpm(){
     MY_PATH=$(echo $PATH)
     if [ $SRPM = 0 ]
@@ -681,11 +698,11 @@ build_srpm(){
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.27/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.28/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.27/g' mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.28/g' mysql-shell.spec
     sed -i 's:1%{?dist}:2%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
@@ -698,7 +715,7 @@ build_srpm(){
     mv -fv ${TARFILE} ${WORKDIR}/rpmbuild/SOURCES
     #
     if [ $RHEL != 8 ]; then
-        rpmbuild -bs --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .generic" --define "bundled_ssh 0" --define "" rpmbuild/SPECS/percona-mysql-shell.spec
+        rpmbuild -bs --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .generic" --define "bundled_ssh 0"  rpmbuild/SPECS/percona-mysql-shell.spec
     else
         rpmbuild -bs --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .generic" rpmbuild/SPECS/percona-mysql-shell.spec
     fi
@@ -814,6 +831,7 @@ build_source_deb(){
     sed -i 's|cmake (>= 2.8.5), ||' debian/control
     sed -i 's|mysql-shell|percona-mysql-shell|' debian/changelog
     sed -i 's|${misc:Depends},|${misc:Depends}, python2.7|' debian/control
+    sed -i 's|(>=0.9.2)||' debian/control
     sed -i '17d' debian/control
     dch -D unstable --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
     dpkg-buildpackage -S
