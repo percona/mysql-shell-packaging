@@ -193,10 +193,10 @@ get_database(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL = 7 ]; then
             source /opt/rh/devtoolset-10/enable
-	fi
-	if [ $RHEL = 8 ]; then
-	    source /opt/rh/gcc-toolset-10/enable
-	fi
+        fi
+        if [ $RHEL = 8 ]; then
+            source /opt/rh/gcc-toolset-10/enable
+        fi
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
@@ -233,6 +233,7 @@ get_sources(){
         echo "Sources will not be downloaded"
         return 0
     fi
+        build_ssh
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
@@ -269,10 +270,10 @@ get_sources(){
     echo "DESTINATION=${DESTINATION}" >> ../mysql-shell.properties
     TIMESTAMP=$(date "+%Y%m%d-%H%M%S")
     echo "UPLOAD=UPLOAD/${DESTINATION}/BUILDS/mysql-shell/mysql-shell-80/${SHELL_BRANCH}/${TIMESTAMP}" >> ../mysql-shell.properties
-    sed -i 's:3.6:3.4:g' CMakeLists.txt
-    sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
-    sed -i 's:3.6:3.4:g' packaging/debian/CMakeLists.txt
-    sed -i 's:3.6:3.4:g' packaging/rpm/mysql-shell.spec.in
+    sed -i 's:3.8:3.6:g' CMakeLists.txt
+    #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
+    sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
+    sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
@@ -385,6 +386,7 @@ install_deps() {
         if [ $RHEL = 8 ]; then
             yum -y install dnf-plugins-core
             yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
+	    subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
             yum -y install epel-release
             yum -y install git
             yum -y install binutils gcc gcc-c++ tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize 
@@ -398,12 +400,13 @@ install_deps() {
             yum -y install libicu-devel automake m4 libtool python2-devel zip rpmlint python3 python3-devel python3-pip git
             yum -y install python3-virtualenv || true
             yum -y install openldap-devel
-	    yum -y install cyrus-sasl-devel cyrus-sasl-scram
-	    yum -y install centos-release-stream
+            yum -y install cyrus-sasl-devel cyrus-sasl-scram
+            yum -y install centos-release-stream
             yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
             yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
             yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
             yum -y remove centos-release-stream
+            yum -y install libcmocka-devel
             #yum install -y python38 python38-devel python38-pip
             pip3 install --upgrade pip
             pip3 install virtualenv
@@ -420,6 +423,7 @@ install_deps() {
             yum -y install perl-Time-HiRes libcurl-devel openldap-devel unzip wget libcurl-devel
             yum -y install perl-Env perl-Data-Dumper perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 || true
             yum -y install libicu-devel automake m4 libtool python-devel zip rpmlint
+            yum -y install libcmocka-devel
             until yum -y install centos-release-scl; do
                 echo "waiting"
                 sleep 1
@@ -428,23 +432,23 @@ install_deps() {
                 echo "waiting"
                 sleep 1
             done
-	if [ "x$RHEL" = "x7" ]; then
-            yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-gcc-c++ devtoolset-10-binutils devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel
-            yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-libasan-devel devtoolset-10-libubsan-devel
-            rm -f /usr/bin/cmake
-	    cp -p /usr/bin/cmake3 /usr/bin/cmake
-        fi
-        if [ "x$RHEL" = "x8" ]; then
-            yum -y install centos-release-stream
-            yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
-            yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
-            yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
-            yum -y remove centos-release-stream
-        fi
+            if [ "x$RHEL" = "x7" ]; then
+                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-gcc-c++ devtoolset-10-binutils devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel
+                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-libasan-devel devtoolset-10-libubsan-devel
+                rm -f /usr/bin/cmake
+                cp -p /usr/bin/cmake3 /usr/bin/cmake
+            fi
+            if [ "x$RHEL" = "x8" ]; then
+                yum -y install centos-release-stream
+                yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
+                yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
+                yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
+                yum -y remove centos-release-stream
+            fi
             yum -y install  gcc-c++ devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3
             yum -y install rh-python38 rh-python38-devel rh-python38-pip
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
-	    yum -y install krb5-devel
+            yum -y install krb5-devel
             alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake 10 \
 --slave /usr/local/bin/ctest ctest /usr/bin/ctest \
 --slave /usr/local/bin/cpack cpack /usr/bin/cpack \
@@ -483,6 +487,8 @@ install_deps() {
             sed -i '/#!\/bin\/bash/a exit 0' /usr/lib/rpm/brp-python-bytecompile
             build_python
             pip install certifi || true
+	    sed -i 's:python :python2 :' /usr/bin/yum
+	    sed -i 's:python:python2 :' /usr/libexec/urlgrabber-ext-down
         fi
         if [ "x$RHEL" = "x6" ]; then
             pip3 install --upgrade pip
@@ -528,6 +534,7 @@ install_deps() {
         apt-get -y install patchelf
         apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
         apt-get -y install libkrb5-dev
+        apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
         if [ x"${DIST}" = xbionic ]; then
             apt-get -y install gcc-8 g++-8
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
@@ -535,6 +542,9 @@ install_deps() {
         else
             apt-get -y install gcc g++
         fi
+        if [ -o "x$OS_NAME" = "xbullseye" ]; then
+            apt-get -y install libssh2-1-dev
+	fi
         
         if [ "x$OS_NAME" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
@@ -560,19 +570,22 @@ install_deps() {
             apt-get -y install python python-dev
             apt-get -y install python27-dev
             apt-get -y install python3 python3-pip
-	    apt-get -y install python3-dev || true
+            apt-get -y install python3-dev || true
         PIP_UTIL="pip3"
         if [ "x$OS_NAME" = "xxenial" ]; then
             update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-	    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
-	    curl  https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
-	    python get-pip.py
-	fi
+            update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+            curl  https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
+            python get-pip.py
+        fi
         if [ "x$OS_NAME" = "xstretch" ]; then
             PIP_UTIL="pip"
             if [ ! -f /usr/bin/pip ]; then
                 ln -s /usr/bin/pip3 /usr/bin/pip
             fi
+            apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
+            build_ssh
+
         fi
         if [ "x$OS_NAME" != "xbuster" ]; then
             if [ "x$OS_NAME" = "xxenial" ]; then
@@ -587,6 +600,10 @@ install_deps() {
             get_cmake
         fi
         
+    fi
+    if [ "x$OS_NAME" = "xbionic" -o "x$OS_NAME" = "xbuster" ]; then
+        apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
+        build_ssh
     fi
     if [ ! -d /usr/local/percona-subunit2junitxml ]; then
         cd /usr/local
@@ -636,6 +653,36 @@ get_deb_sources(){
     return
 }
 
+build_ssh(){
+        cd "${WORKDIR}"
+            wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.8.9.tar.bz2
+            wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.45.tar.bz2
+
+            tar -xvf libgcrypt-1.8.9.tar.bz2
+            tar -xvf libgpg-error-1.45.tar.bz2
+            rm -f libgpg-error-1.45.tar.bz2 libgcrypt-1.8.9.tar.bz2
+            cd libgpg-error-1.45
+                ./configure
+                make
+                sudo make install
+            cd -
+            cd libgcrypt-1.8.9
+                ./configure
+                make
+                sudo make install
+            cd -
+    cd "${WORKDIR}"
+    wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.3.orig.tar.xz
+    tar -xvf libssh_0.9.3.orig.tar.xz
+    cd libssh-0.9.3/
+    mkdir build
+    cd build
+    cmake  -Wno-error-implicit-function-declaration -DUNIT_TESTING=ON -DWITH_GCRYPT=ON  -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
+    make
+    sudo make install
+    cd ${WORKDIR}
+}
+
 build_srpm(){
     MY_PATH=$(echo $PATH)
     if [ $SRPM = 0 ]
@@ -648,6 +695,7 @@ build_srpm(){
         echo "It is not possible to build src rpm here"
         exit 1
     fi
+    build_ssh
     if [ $RHEL != 8 ]; then
         source /opt/rh/devtoolset-7/enable
         source /opt/rh/rh-python38/enable
@@ -679,14 +727,16 @@ build_srpm(){
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.27/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.28/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.27/g' mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.28/g' mysql-shell.spec
     sed -i 's:1%{?dist}:2%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
+    sed -i 's:>= 0.9.2::' mysql-shell.spec
+    sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
 
@@ -695,7 +745,7 @@ build_srpm(){
     #
     mv -fv ${TARFILE} ${WORKDIR}/rpmbuild/SOURCES
     #
-    rpmbuild -bs --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .generic" rpmbuild/SPECS/percona-mysql-shell.spec
+        rpmbuild -bs --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .generic" rpmbuild/SPECS/percona-mysql-shell.spec
     #
     mkdir -p ${WORKDIR}/srpm
     mkdir -p ${CURDIR}/srpm
@@ -715,6 +765,7 @@ build_rpm(){
     then
         echo "It is not possible to build rpm here"
     fi
+    build_ssh
     SRC_RPM=$(basename $(find $WORKDIR/srpm -name 'percona-mysql-shell-*.src.rpm' | sort | tail -n1))
     if [ -z $SRC_RPM ]
     then
@@ -789,6 +840,7 @@ build_source_deb(){
         echo "It is not possible to build source deb here"
         exit 1
     fi
+    build_ssh
     rm -rf mysql-shell*
     get_tar "source_tarball"
     rm -f *.dsc *.orig.tar.gz *.debian.tar.* *.changes
@@ -803,11 +855,14 @@ build_source_deb(){
     mv ${TARFILE} ${NEWTAR}
     tar xzf ${NEWTAR}
     cd mysql-shell-${VERSION}
+    sed -i 's|3.8|3.6|' CMakeLists.txtx
     sed -i 's|Source: mysql-shell|Source: percona-mysql-shell|' debian/control
     sed -i 's|Package: mysql-shell|Package: percona-mysql-shell|' debian/control
     sed -i 's|cmake (>= 2.8.5), ||' debian/control
     sed -i 's|mysql-shell|percona-mysql-shell|' debian/changelog
     sed -i 's|${misc:Depends},|${misc:Depends}, python2.7|' debian/control
+    sed -i 's|(>=0.9.2)||' debian/control
+    sed -i 's|libssh-dev ,||' debian/control
     sed -i '17d' debian/control
     dch -D unstable --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
     dpkg-buildpackage -S
@@ -835,6 +890,7 @@ build_deb(){
         echo "It is not possible to build source deb here"
         exit 1
     fi
+    build_ssh
     for file in 'dsc' 'orig.tar.gz' 'changes' 'debian.tar.xz'
     do
         ls $WORKDIR */*
@@ -860,6 +916,7 @@ build_deb(){
     get_v8
     build_oci_sdk
     cd ${WORKDIR}/percona-mysql-shell-$SHELL_BRANCH-1
+    sed -i 's:3.8:3.6:' CMakeLists.txt
     sed -i 's/make -j8/make -j8\n\t/' debian/rules
     sed -i '/-DCMAKE/,/j8/d' debian/rules
     sed -i 's/--fail-missing//' debian/rules
@@ -929,10 +986,10 @@ build_tarball(){
     if [ -f /etc/redhat-release ]; then
         if [ $RHEL = 7 ]; then
             source /opt/rh/devtoolset-10/enable
-	fi
-	if [ $RHEL = 8 ]; then
-	    source /opt/rh/gcc-toolset-10/enable
-	fi
+        fi
+        if [ $RHEL = 8 ]; then
+            source /opt/rh/gcc-toolset-10/enable
+        fi
         if [ $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
