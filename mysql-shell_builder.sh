@@ -405,6 +405,7 @@ install_deps() {
             yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
             yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
             yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
+	    yum -y install cmake
             yum -y remove centos-release-stream
             yum -y install libcmocka-devel
             #yum install -y python38 python38-devel python38-pip
@@ -677,7 +678,7 @@ build_ssh(){
     cd libssh-0.9.3/
     mkdir build
     cd build
-    cmake  -Wno-error-implicit-function-declaration -DUNIT_TESTING=ON -DWITH_GCRYPT=ON  -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
+    cmake  -Wno-error-implicit-function-declaration -DWITH_GCRYPT=OFF -DWITH_ZLIB=OFF -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
     make
     sudo make install
     cd ${WORKDIR}
@@ -733,12 +734,13 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i 's/@MYSH_VERSION@/8.0.28/g' mysql-shell.spec
     sed -i 's:1%{?dist}:2%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\n%files\n%{_prefix}/lib/mysqlsh/.*\n%{_prefix}/lib/mysqlsh/*:' mysql-shell.spec
 
     mv mysql-shell.spec percona-mysql-shell.spec
     cd ${WORKDIR}
@@ -817,7 +819,7 @@ build_rpm(){
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
         source /opt/rh/gcc-toolset-10/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk"  --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk"  --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -921,8 +923,9 @@ build_deb(){
     sed -i '/-DCMAKE/,/j8/d' debian/rules
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
+    echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1:-DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    sed -i "s:VERBOSE=1:-DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
