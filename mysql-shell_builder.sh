@@ -22,6 +22,7 @@ Usage: $0 [OPTIONS]
         --repo_mysqlshell   mysql-shell repo
         --mysqlshell_branch Branch for mysql-shell
         --protobuf_branch   Branch for protobuf
+	
         --rpm_release       RPM version( default = 1)
         --deb_release       DEB version( default = 1)
         --help) usage ;;
@@ -866,7 +867,7 @@ build_source_deb(){
     sed -i 's|(>=0.9.2)||' debian/control
     sed -i 's|libssh-dev ,||' debian/control
     sed -i '17d' debian/control
-    dch -D unstable --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
+    dch -D unstable --force-distribution -v "${VERSION}-2-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
     dpkg-buildpackage -S
     cd ${WORKDIR}
     mkdir -p $WORKDIR/source_deb
@@ -936,7 +937,7 @@ build_deb(){
         grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     fi
 
-    dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-2.${DEBIAN_VERSION}" 'Update distribution'
+    dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-2-2.${DEBIAN_VERSION}" 'Update distribution'
     dpkg-buildpackage -rfakeroot -uc -us -b
     cd ${WORKDIR}
     mkdir -p $CURDIR/deb
