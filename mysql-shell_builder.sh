@@ -906,6 +906,7 @@ build_deb(){
     DIRNAME=$(echo ${DSC%-${DEB_RELEASE}.dsc} | sed -e 's:_:-:g')
     VERSION=$(echo ${DSC} | sed -e 's:_:-:g' | awk -F'-' '{print $4}')
     RELEASE=$(echo ${DSC} | sed -e 's:_:-:g' | awk -F'-' '{print $5}')
+    RELEASE=2
     ARCH=$(uname -m)
     export EXTRAVER=${MYSQL_VERSION_EXTRA#-}
     #
