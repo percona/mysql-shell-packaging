@@ -853,7 +853,7 @@ build_source_deb(){
     VERSION=$(echo ${TARFILE}| awk -F '-' '{print $4}' | awk -F '.tar' '{print $1}')
     SHORTVER=$(echo ${VERSION} | awk -F '.' '{print $1"."$2}')
     TMPREL="1.tar.gz"
-    RELEASE=1
+    RELEASE=2
     NEWTAR=${NAME}_${VERSION}-${RELEASE}.orig.tar.gz
     mv ${TARFILE} ${NEWTAR}
     tar xzf ${NEWTAR}
