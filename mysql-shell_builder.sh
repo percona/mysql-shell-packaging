@@ -734,7 +734,7 @@ build_srpm(){
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i 's/@MYSH_VERSION@/8.0.28/g' mysql-shell.spec
-    sed -i 's:1%{?dist}:2%{?dist}:g'  mysql-shell.spec
+    sed -i 's:1%{?dist}:3%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
@@ -868,7 +868,7 @@ build_source_deb(){
     sed -i 's|(>=0.9.2)||' debian/control
     sed -i 's|libssh-dev ,||' debian/control
     sed -i '17d' debian/control
-    dch -D unstable --force-distribution -v "${VERSION}-2-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
+    dch -D unstable --force-distribution -v "${VERSION}-3-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
     dpkg-buildpackage -S
     cd ${WORKDIR}
     mkdir -p $WORKDIR/source_deb
@@ -907,7 +907,7 @@ build_deb(){
     DIRNAME=$(echo ${DSC%-${DEB_RELEASE}.dsc} | sed -e 's:_:-:g')
     VERSION=$(echo ${DSC} | sed -e 's:_:-:g' | awk -F'-' '{print $4}')
     RELEASE=$(echo ${DSC} | sed -e 's:_:-:g' | awk -F'-' '{print $5}')
-    RELEASE=2
+    RELEASE=3
     ARCH=$(uname -m)
     export EXTRAVER=${MYSQL_VERSION_EXTRA#-}
     #
@@ -920,7 +920,7 @@ build_deb(){
     get_database
     get_v8
     build_oci_sdk
-    cd ${WORKDIR}/percona-mysql-shell-$SHELL_BRANCH-2
+    cd ${WORKDIR}/percona-mysql-shell-$SHELL_BRANCH-3
     sed -i 's:3.8:3.6:' CMakeLists.txt
     sed -i 's/make -j8/make -j8\n\t/' debian/rules
     sed -i '/-DCMAKE/,/j8/d' debian/rules
@@ -939,7 +939,7 @@ build_deb(){
         grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     fi
 
-    dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-2-2.${DEBIAN_VERSION}" 'Update distribution'
+    dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-3-3.${DEBIAN_VERSION}" 'Update distribution'
     dpkg-buildpackage -rfakeroot -uc -us -b
     cd ${WORKDIR}
     mkdir -p $CURDIR/deb
@@ -1093,12 +1093,12 @@ SHELL_REPO="https://github.com/mysql/mysql-shell.git"
 SHELL_BRANCH="8.0.28"
 PROTOBUF_BRANCH=v3.11.4
 INSTALL=0
-RPM_RELEASE=2
-DEB_RELEASE=2
+RPM_RELEASE=3
+DEB_RELEASE=3
 REVISION=0
 BRANCH="release-8.0.28-20"
-RPM_RELEASE=2
-DEB_RELEASE=2
+RPM_RELEASE=3
+DEB_RELEASE=3
 YASSL=0
 REPO="https://github.com/percona/percona-server.git"
 MYSQL_VERSION_EXTRA=-1
