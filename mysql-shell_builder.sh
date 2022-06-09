@@ -853,12 +853,12 @@ build_source_deb(){
     VERSION=$(echo ${TARFILE}| awk -F '-' '{print $4}' | awk -F '.tar' '{print $1}')
     SHORTVER=$(echo ${VERSION} | awk -F '.' '{print $1"."$2}')
     TMPREL="1.tar.gz"
-    RELEASE=2
+    RELEASE=3
     NEWTAR=${NAME}_${VERSION}-${RELEASE}.orig.tar.gz
     mv ${TARFILE} ${NEWTAR}
     tar xzf ${NEWTAR}
     cd mysql-shell-${VERSION}
-    cd percona-mysql-shell-8.0.28-2
+    cd percona-mysql-shell-8.0.28-3
     sed -i 's|3.8|3.6|' CMakeLists.txtx
     sed -i 's|Source: mysql-shell|Source: percona-mysql-shell|' debian/control
     sed -i 's|Package: mysql-shell|Package: percona-mysql-shell|' debian/control
