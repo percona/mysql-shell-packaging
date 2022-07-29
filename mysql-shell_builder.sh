@@ -729,11 +729,11 @@ build_srpm(){
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.28/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.29/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.28/g' mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.29/g' mysql-shell.spec
     sed -i 's:1%{?dist}:3%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
@@ -858,7 +858,7 @@ build_source_deb(){
     mv ${TARFILE} ${NEWTAR}
     tar xzf ${NEWTAR}
     cd mysql-shell-${VERSION}
-    cd percona-mysql-shell-8.0.28-3
+    cd percona-mysql-shell-8.0.29-3
     sed -i 's|3.8|3.6|' CMakeLists.txtx
     sed -i 's|Source: mysql-shell|Source: percona-mysql-shell|' debian/control
     sed -i 's|Package: mysql-shell|Package: percona-mysql-shell|' debian/control
@@ -1090,13 +1090,13 @@ ARCH=
 OS=
 PROTOBUF_REPO="https://github.com/protocolbuffers/protobuf.git"
 SHELL_REPO="https://github.com/mysql/mysql-shell.git"
-SHELL_BRANCH="8.0.28"
+SHELL_BRANCH="8.0.29"
 PROTOBUF_BRANCH=v3.11.4
 INSTALL=0
 RPM_RELEASE=3
 DEB_RELEASE=3
 REVISION=0
-BRANCH="release-8.0.28-20"
+BRANCH="release-8.0.29-21"
 RPM_RELEASE=3
 DEB_RELEASE=3
 YASSL=0
