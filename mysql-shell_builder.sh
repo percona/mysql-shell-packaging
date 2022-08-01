@@ -184,12 +184,12 @@ get_database(){
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
     fi
     mkdir bld
-    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_73_0.tar.gz
-    #wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz
-    tar -xvzf boost_1_73_0.tar.gz
+    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_77_0.tar.gz
+    #wget https://dl.bintray.com/boostorg/release/1.77.0/source/boost_1_77_0.tar.gz
+    tar -xvzf boost_1_77_0.tar.gz
     mkdir -p $WORKDIR/boost
-    mv boost_1_73_0/* $WORKDIR/boost/
-    rm -rf boost_1_73_0 boost_1_73_0.tar.gz
+    mv boost_1_77_0/* $WORKDIR/boost/
+    rm -rf boost_1_77_0 boost_1_77_0.tar.gz
     cd bld
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL = 7 ]; then
