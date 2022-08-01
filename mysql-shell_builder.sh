@@ -184,7 +184,8 @@ get_database(){
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
     fi
     mkdir bld
-    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_77_0.tar.gz
+    wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.gz
+    #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_77_0.tar.gz
     #wget https://dl.bintray.com/boostorg/release/1.77.0/source/boost_1_77_0.tar.gz
     tar -xvzf boost_1_77_0.tar.gz
     mkdir -p $WORKDIR/boost
