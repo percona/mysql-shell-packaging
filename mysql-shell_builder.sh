@@ -196,7 +196,7 @@ get_database(){
             source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-11/enable
+            source /opt/rh/gcc-toolset-10/enable
         fi
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
