@@ -22,7 +22,6 @@ Usage: $0 [OPTIONS]
         --repo_mysqlshell   mysql-shell repo
         --mysqlshell_branch Branch for mysql-shell
         --protobuf_branch   Branch for protobuf
-	
         --rpm_release       RPM version( default = 1)
         --deb_release       DEB version( default = 1)
         --help) usage ;;
@@ -404,6 +403,9 @@ install_deps() {
             yum -y install openldap-devel
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
             yum -y install centos-release-stream
+            yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
+            yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
+            yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
             yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
             yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
             yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel
@@ -436,6 +438,8 @@ install_deps() {
                 sleep 1
             done
             if [ "x$RHEL" = "x7" ]; then
+                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-gcc-c++ devtoolset-10-binutils devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel
+                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-libasan-devel devtoolset-10-libubsan-devel
                 yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-11-gcc-c++ devtoolset-11-binutils devtoolset-11-valgrind devtoolset-11-valgrind-devel devtoolset-11-libatomic-devel
                 yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-11-libasan-devel devtoolset-11-libubsan-devel
                 rm -f /usr/bin/cmake
@@ -443,6 +447,9 @@ install_deps() {
             fi
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install centos-release-stream
+                yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
+                yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
+                yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
                 yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
                 yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
                 yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel
@@ -735,7 +742,7 @@ build_srpm(){
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i 's/@MYSH_VERSION@/8.0.29/g' mysql-shell.spec
-    sed -i 's:1%{?dist}:3%{?dist}:g'  mysql-shell.spec
+    sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
@@ -817,10 +824,10 @@ build_rpm(){
     if [ ${RHEL} = 6 ]; then
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl11" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
-        source /opt/rh/devtoolset-11/enable
+        source /opt/rh/devtoolset-10/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        source /opt/rh/gcc-toolset-11/enable
+        source /opt/rh/gcc-toolset-10/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk"  --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
@@ -854,12 +861,11 @@ build_source_deb(){
     VERSION=$(echo ${TARFILE}| awk -F '-' '{print $4}' | awk -F '.tar' '{print $1}')
     SHORTVER=$(echo ${VERSION} | awk -F '.' '{print $1"."$2}')
     TMPREL="1.tar.gz"
-    RELEASE=3
+    RELEASE=1
     NEWTAR=${NAME}_${VERSION}-${RELEASE}.orig.tar.gz
     mv ${TARFILE} ${NEWTAR}
     tar xzf ${NEWTAR}
     cd mysql-shell-${VERSION}
-    cd percona-mysql-shell-8.0.29-3
     sed -i 's|3.8|3.6|' CMakeLists.txtx
     sed -i 's|Source: mysql-shell|Source: percona-mysql-shell|' debian/control
     sed -i 's|Package: mysql-shell|Package: percona-mysql-shell|' debian/control
@@ -869,7 +875,7 @@ build_source_deb(){
     sed -i 's|(>=0.9.2)||' debian/control
     sed -i 's|libssh-dev ,||' debian/control
     sed -i '17d' debian/control
-    dch -D unstable --force-distribution -v "${VERSION}-3-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
+    dch -D unstable --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
     dpkg-buildpackage -S
     cd ${WORKDIR}
     mkdir -p $WORKDIR/source_deb
@@ -908,7 +914,6 @@ build_deb(){
     DIRNAME=$(echo ${DSC%-${DEB_RELEASE}.dsc} | sed -e 's:_:-:g')
     VERSION=$(echo ${DSC} | sed -e 's:_:-:g' | awk -F'-' '{print $4}')
     RELEASE=$(echo ${DSC} | sed -e 's:_:-:g' | awk -F'-' '{print $5}')
-    RELEASE=3
     ARCH=$(uname -m)
     export EXTRAVER=${MYSQL_VERSION_EXTRA#-}
     #
@@ -921,7 +926,7 @@ build_deb(){
     get_database
     get_v8
     build_oci_sdk
-    cd ${WORKDIR}/percona-mysql-shell-$SHELL_BRANCH-3
+    cd ${WORKDIR}/percona-mysql-shell-$SHELL_BRANCH-1
     sed -i 's:3.8:3.6:' CMakeLists.txt
     sed -i 's/make -j8/make -j8\n\t/' debian/rules
     sed -i '/-DCMAKE/,/j8/d' debian/rules
@@ -940,7 +945,7 @@ build_deb(){
         grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     fi
 
-    dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-3-3.${DEBIAN_VERSION}" 'Update distribution'
+    dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
     dpkg-buildpackage -rfakeroot -uc -us -b
     cd ${WORKDIR}
     mkdir -p $CURDIR/deb
@@ -992,10 +997,10 @@ build_tarball(){
     cd bld
     if [ -f /etc/redhat-release ]; then
         if [ $RHEL = 7 ]; then
-            source /opt/rh/devtoolset-11/enable
+            source /opt/rh/devtoolset-10/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-11/enable
+            source /opt/rh/gcc-toolset-10/enable
         fi
         if [ $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1094,12 +1099,12 @@ SHELL_REPO="https://github.com/mysql/mysql-shell.git"
 SHELL_BRANCH="8.0.29"
 PROTOBUF_BRANCH=v3.19.4
 INSTALL=0
-RPM_RELEASE=3
-DEB_RELEASE=3
+RPM_RELEASE=1
+DEB_RELEASE=1
 REVISION=0
 BRANCH="release-8.0.29-21"
-RPM_RELEASE=3
-DEB_RELEASE=3
+RPM_RELEASE=1
+DEB_RELEASE=1
 YASSL=0
 REPO="https://github.com/percona/percona-server.git"
 MYSQL_VERSION_EXTRA=-1
