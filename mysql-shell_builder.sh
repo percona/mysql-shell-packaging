@@ -183,19 +183,20 @@ get_database(){
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
     fi
     mkdir bld
-    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_73_0.tar.gz
-    #wget https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz
-    tar -xvzf boost_1_73_0.tar.gz
+    wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.gz
+    #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_77_0.tar.gz
+    #wget https://dl.bintray.com/boostorg/release/1.77.0/source/boost_1_77_0.tar.gz
+    tar -xvzf boost_1_77_0.tar.gz
     mkdir -p $WORKDIR/boost
-    mv boost_1_73_0/* $WORKDIR/boost/
-    rm -rf boost_1_73_0 boost_1_73_0.tar.gz
+    mv boost_1_77_0/* $WORKDIR/boost/
+    rm -rf boost_1_77_0 boost_1_77_0.tar.gz
     cd bld
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL = 7 ]; then
-            source /opt/rh/devtoolset-10/enable
+            source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-10/enable
+            source /opt/rh/gcc-toolset-11/enable
         fi
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
@@ -271,6 +272,7 @@ get_sources(){
     TIMESTAMP=$(date "+%Y%m%d-%H%M%S")
     echo "UPLOAD=UPLOAD/${DESTINATION}/BUILDS/mysql-shell/mysql-shell-80/${SHELL_BRANCH}/${TIMESTAMP}" >> ../mysql-shell.properties
     sed -i 's:3.8:3.6:g' CMakeLists.txt
+    sed -i 's:toolset-10:toolset-11:g' CMakeLists.txt
     #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
     sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
@@ -402,9 +404,9 @@ install_deps() {
             yum -y install openldap-devel
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
             yum -y install centos-release-stream
-            yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
-            yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
-            yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
+            yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
+            yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
+            yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel
 	    yum -y install cmake
             yum -y remove centos-release-stream
             yum -y install libcmocka-devel
@@ -434,16 +436,16 @@ install_deps() {
                 sleep 1
             done
             if [ "x$RHEL" = "x7" ]; then
-                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-gcc-c++ devtoolset-10-binutils devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel
-                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-10-libasan-devel devtoolset-10-libubsan-devel
+                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-11-gcc-c++ devtoolset-11-binutils devtoolset-11-valgrind devtoolset-11-valgrind-devel devtoolset-11-libatomic-devel
+                yum -y --enablerepo=centos-sclo-rh-testing install devtoolset-11-libasan-devel devtoolset-11-libubsan-devel
                 rm -f /usr/bin/cmake
                 cp -p /usr/bin/cmake3 /usr/bin/cmake
             fi
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install centos-release-stream
-                yum -y install gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils
-                yum -y install gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel
-                yum -y install gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel
+                yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
+                yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
+                yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel
                 yum -y remove centos-release-stream
             fi
             yum -y install  gcc-c++ devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3
@@ -728,12 +730,12 @@ build_srpm(){
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.28/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.29/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.28/g' mysql-shell.spec
-    sed -i 's:1%{?dist}:2%{?dist}:g'  mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.29/g' mysql-shell.spec
+    sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
@@ -815,10 +817,10 @@ build_rpm(){
     if [ ${RHEL} = 6 ]; then
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl11" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
-        source /opt/rh/devtoolset-10/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        source /opt/rh/devtoolset-11/enable
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        source /opt/rh/gcc-toolset-10/enable
+        source /opt/rh/gcc-toolset-11/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk"  --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
@@ -988,10 +990,10 @@ build_tarball(){
     cd bld
     if [ -f /etc/redhat-release ]; then
         if [ $RHEL = 7 ]; then
-            source /opt/rh/devtoolset-10/enable
+            source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-10/enable
+            source /opt/rh/gcc-toolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1087,15 +1089,15 @@ ARCH=
 OS=
 PROTOBUF_REPO="https://github.com/protocolbuffers/protobuf.git"
 SHELL_REPO="https://github.com/mysql/mysql-shell.git"
-SHELL_BRANCH="8.0.28"
-PROTOBUF_BRANCH=v3.11.4
+SHELL_BRANCH="8.0.29"
+PROTOBUF_BRANCH=v3.19.4
 INSTALL=0
-RPM_RELEASE=2
-DEB_RELEASE=2
+RPM_RELEASE=1
+DEB_RELEASE=1
 REVISION=0
-BRANCH="release-8.0.28-20"
-RPM_RELEASE=2
-DEB_RELEASE=2
+BRANCH="release-8.0.29-21"
+RPM_RELEASE=1
+DEB_RELEASE=1
 YASSL=0
 REPO="https://github.com/percona/percona-server.git"
 MYSQL_VERSION_EXTRA=-1
