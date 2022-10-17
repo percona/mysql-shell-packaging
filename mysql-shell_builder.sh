@@ -71,6 +71,7 @@ parse_arguments() {
         esac
     done
 }
+
 check_workdir(){
     if [ "x$WORKDIR" = "x$CURDIR" ]
     then
@@ -85,6 +86,7 @@ check_workdir(){
     fi
     return
 }
+
 add_percona_yum_repo(){
     if [ ! -f /etc/yum.repos.d/percona-dev.repo ]
     then
@@ -93,6 +95,7 @@ add_percona_yum_repo(){
     fi
     return
 }
+
 add_percona_apt_repo(){
     if [ ! -f /etc/apt/sources.list.d/percona-dev.list ]; then
         cat >/etc/apt/sources.list.d/percona-dev.list <<EOL
@@ -104,6 +107,7 @@ EOL
     wget -qO - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add -
     return
 }
+
 get_cmake(){
     cd ${WORKDIR}
     apt -y purge cmake*
@@ -116,10 +120,11 @@ get_cmake(){
     make install
     cd ${WORKDIR}
 }
+
 get_protobuf(){
     MY_PATH=$(echo $PATH)
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL != 8 ]; then
+        if [ $RHEL -le 7 ]; then
             source /opt/rh/devtoolset-7/enable
             source /opt/rh/rh-python38/enable
         fi
@@ -140,7 +145,7 @@ get_protobuf(){
         sed -i 's;mv gtest-1.5.0 gtest;mv googletest-release-1.5.0 gtest;' autogen.sh
     fi
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL != 8 ]; then
+        if [ $RHEL -le 7 ]; then
             source /opt/rh/devtoolset-7/enable
             source /opt/rh/rh-python38/enable
         fi
@@ -153,10 +158,11 @@ get_protobuf(){
     export PATH=$MY_PATH
     return
 }
+
 get_database(){
     MY_PATH=$(echo $PATH)
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL != 8 ]; then
+        if [ $RHEL -le 7 ]; then
             source /opt/rh/devtoolset-7/enable
             source /opt/rh/rh-python38/enable
         fi
@@ -214,6 +220,8 @@ get_database(){
     fi
     cmake --build . --target mysqlclient
     cmake --build . --target mysqlxclient
+    cat /mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-8-x64/test/percona-server/bld/CMakeFiles/CMakeOutput.log
+    cat /mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-8-x64/test/percona-server/bld/CMakeFiles/CMakeError.log
     cd $WORKDIR
     export PATH=$MY_PATH
     return
@@ -271,11 +279,11 @@ get_sources(){
     echo "DESTINATION=${DESTINATION}" >> ../mysql-shell.properties
     TIMESTAMP=$(date "+%Y%m%d-%H%M%S")
     echo "UPLOAD=UPLOAD/${DESTINATION}/BUILDS/mysql-shell/mysql-shell-80/${SHELL_BRANCH}/${TIMESTAMP}" >> ../mysql-shell.properties
-    sed -i 's:3.8:3.6:g' CMakeLists.txt
+    #sed -i 's:3.8:3.6:g' CMakeLists.txt
     sed -i 's:toolset-10:toolset-11:g' CMakeLists.txt
     #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
-    sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
-    sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
+    #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
+    #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
@@ -296,6 +304,7 @@ get_sources(){
     rm -rf mysql-shell
     return
 }
+
 build_oci_sdk(){
     git clone https://github.com/oracle/oci-python-sdk.git
     cd oci-python-sdk/
@@ -322,15 +331,16 @@ build_oci_sdk(){
             pip install certifi || true
             pip install -e .
         else
-                pip3.7 install -r requirements.txt
-                pip3.7 install -e .
-                pip3.7 install certifi || true
+                pip3 install -r requirements.txt
+                pip3 install -e .
+                pip3 install certifi || true
         fi
     fi
     rm -f /oci_sdk/.gitignore
     mv oci_sdk ${WORKDIR}/
     cd ../
 }
+
 get_system(){
     if [ -f /etc/redhat-release ]; then
         RHEL=$(rpm --eval %rhel)
@@ -345,30 +355,80 @@ get_system(){
     return
 }
 
+build_openssl(){
+    if [ -n "$1" ]; then
+        version="$1"
+    else
+        version="1_1_1q"
+    fi
+    cd ${WORKDIR}
+    if [ ${version:0:1} -eq "1" ]; then
+        fullversion="OpenSSL_${version}"
+    else
+        fullversion="openssl-${version}"
+    fi
+    wget --no-check-certificate https://github.com/openssl/openssl/archive/${fullversion}.tar.gz
+    tar -xvzf ${fullversion}.tar.gz
+    cd openssl-${fullversion}/
+    ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl shared zlib
+    make -j4
+    make install
+    cd ../
+    rm -rf ${fullversion}.tar.gz openssl-${fullversion}
+    echo "/usr/local/openssl/lib" > /etc/ld.so.conf.d/openssl-${version}.conf
+    echo "/usr/local/openssl/lib64" >> /etc/ld.so.conf.d/openssl-${version}.conf
+    #echo "include ld.so.conf.d/*.conf" >> /etc/ld.so.conf
+    ldconfig -v
+    mv -f /bin/openssl /bin/openssl.backup
+    ln -s /usr/local/openssl/bin/openssl /bin/openssl
+    openssl version
+}
+
 build_python(){
     cd ${WORKDIR}
-    wget --no-check-certificate https://www.python.org/ftp/python/3.7.5/Python-3.7.5.tgz
-    tar xzf Python-3.7.5.tgz
-    cd Python-3.7.5
-    sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl11/g' Modules/Setup.dist
-    sed -i '211,214 s/^##*//' Modules/Setup.dist
-    ./configure --prefix=/usr/local/python37 --with-openssl=/usr/local/openssl11 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python37/lib 
-    make
-    make install
-    ln -sf /usr/local/python37/bin/*3.7* /usr/local/bin
-    ln -sf /usr/local/python37/bin/*3.7* /usr/bin
-    echo "/usr/local/python3.7/lib" > /etc/ld.so.conf.d/python-3.7.conf
-    mv /usr/bin/python /usr/bin/python_back
-    if [ -f /usr/bin/python2.7 ]; then
-        update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+    if [ $RHEL -le 8 ]; then
+        pversion="3.9.15"
     else
-        update-alternatives --install /usr/bin/python python /usr/bin/python2.6 1
+	pversion="3.8.9"
     fi
-    update-alternatives --install /usr/bin/python python /usr/bin/python3.7 100
-    ldconfig /usr/local/lib
+    wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
+    tar xzf Python-${pversion}.tgz
+    cd Python-${pversion}
+    if [ $RHEL -le 7 -o $RHEL = 9 ]; then
+        sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
+    fi
+    if [ $RHEL -le 8 ]; then
+        sed -i '210 s/^##*//' Modules/Setup
+        sed -i '214,217 s/^##*//' Modules/Setup
+    else
+        sed -i '206 s/^##*//' Modules/Setup
+        sed -i '210,213 s/^##*//' Modules/Setup
+    fi
+    if [ $RHEL -le 7 ]; then
+        ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+    elif [ $RHEL = 9 ]; then
+        ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
+    else
+        ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+    fi
+    make
+    make altinstall
+    echo "/usr/local/python3${pversion:2:1}/lib" > /etc/ld.so.conf.d/python-3.${pversion:2:1}.conf
+    echo "/usr/local/python3${pversion:2:1}/lib64" >> /etc/ld.so.conf.d/python-3.${pversion:2:1}.conf
+    #update-alternatives --remove-all python3
+    #update-alternatives --install /usr/bin/python3 python3 /usr/local/python39/bin/python3 100
+    #update-alternatives --remove-all pip3
+    #update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python39/bin/pip3 100
+    ldconfig -v
     cd ../
-    
+    python3 -m site
+    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install --upgrade pip
+    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install pyyaml
+    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install certifi
+    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install virtualenv
+    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install setuptools
 }
+
 install_deps() {
     if [ $INSTALL = 0 ]
     then
@@ -384,36 +444,48 @@ install_deps() {
     if [ "x$OS" = "xrpm" ]; then
         RHEL=$(rpm --eval %rhel)
         ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
-        add_percona_yum_repo
-        if [ $RHEL = 8 ]; then
+        if [ $RHEL = 9 ]; then
+            dnf -y install yum
+            yum -y install yum-utils
+            yum-config-manager --enable ol9_codeready_builder
+        else
+            add_percona_yum_repo
+        fi
+        if [ $RHEL = 8 -o $RHEL = 9 ]; then
             yum -y install dnf-plugins-core
-            yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
-	    subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+            if [ "x$RHEL" = "x8" ]; then
+                yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
+	        subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+            fi
             yum -y install epel-release
             yum -y install git
             yum -y install binutils gcc gcc-c++ tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize 
-            yum -y install automake autoconf cmake jemalloc jemalloc-devel
+            yum -y install automake autoconf jemalloc jemalloc-devel
             yum -y install libaio-devel ncurses-devel numactl-devel readline-devel time
             yum -y install rpcgen
-            yum -y install automake m4 libtool python2-devel zip rpmlint
+            yum -y install automake m4 libtool zip rpmlint
             yum -y install gperf ncurses-devel perl
             yum -y install libcurl-devel
-            yum -y install perl-Env perl-Data-Dumper perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 || true
-            yum -y install libicu-devel automake m4 libtool python2-devel zip rpmlint python3 python3-devel python3-pip git
+            yum -y install perl-Env perl-Data-Dumper perl-JSON perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 || true
+            yum -y install libicu-devel git
             yum -y install python3-virtualenv || true
             yum -y install openldap-devel
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
-            yum -y install centos-release-stream
-            yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
-            yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
-            yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel
 	    yum -y install cmake
-            yum -y remove centos-release-stream
-            yum -y install libcmocka-devel
-            #yum install -y python38 python38-devel python38-pip
-            pip3 install --upgrade pip
-            pip3 install virtualenv
-            pip3 install certifi || true
+            yum -y install libcmocka-devel libffi-devel
+            if [ "x$RHEL" = "x8" ]; then
+                yum -y install MySQL-python
+                yum -y install centos-release-stream
+                yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
+                yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
+                yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel gcc-toolset-11-annobin-plugin-gcc
+                yum -y remove centos-release-stream
+                dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
+            fi
+            if [ "x$RHEL" = "x9" ]; then
+                yum -y install krb5-devel
+                yum -y install zlib zlib-devel
+            fi
             build_python
             #build_oci_sdk
         else
@@ -441,29 +513,27 @@ install_deps() {
                 rm -f /usr/bin/cmake
                 cp -p /usr/bin/cmake3 /usr/bin/cmake
             fi
-            if [ "x$RHEL" = "x8" ]; then
-                yum -y install centos-release-stream
-                yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
-                yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
-                yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel
-                yum -y remove centos-release-stream
-            fi
-            yum -y install  gcc-c++ devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3
+            yum -y install gcc-c++ devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3
             yum -y install rh-python38 rh-python38-devel rh-python38-pip
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
             yum -y install krb5-devel
+
             alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake 10 \
 --slave /usr/local/bin/ctest ctest /usr/bin/ctest \
 --slave /usr/local/bin/cpack cpack /usr/bin/cpack \
 --slave /usr/local/bin/ccmake ccmake /usr/bin/ccmake 
-
             alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake3 20 \
 --slave /usr/local/bin/ctest ctest /usr/bin/ctest3 \
 --slave /usr/local/bin/cpack cpack /usr/bin/cpack3 \
 --slave /usr/local/bin/ccmake ccmake /usr/bin/ccmake3 
+            alternatives --display cmake
+
             source /opt/rh/rh-python38/enable
-            pip install certifi || true
-            pip install virtualenv || true
+            python3 -m pip install --upgrade pip
+            python3 -m pip install pyyaml
+            python3 -m pip install certifi
+            python3 -m pip install virtualenv
+            python3 -m pip install setuptools
         fi
         if [ "x$RHEL" = "x6" ]; then
             yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm
@@ -472,24 +542,13 @@ install_deps() {
             yum install -y percona-devtoolset-gcc percona-devtoolset-binutils python-devel percona-devtoolset-gcc-c++ percona-devtoolset-libstdc++-devel percona-devtoolset-valgrind-devel
             yum install -y patchelf
             sed -i "668s:(void:(const void:" /usr/include/openssl/bio.h
-            cd ${WORKDIR}
-            wget --no-check-certificate https://github.com/openssl/openssl/archive/OpenSSL_1_1_1m.tar.gz
-            tar -xvzf OpenSSL_1_1_1m.tar.gz
-            cd openssl-OpenSSL_1_1_1m/
-            ./config --prefix=/usr/local/openssl11 --openssldir=/usr/local/openssl11 shared zlib
-            make -j4
-            make install
-            cd ../
-            rm -rf OpenSSL_1_1_1d.tar.gz openssl-OpenSSL_1_1_1m
-            echo "/usr/local/openssl11/lib" > /etc/ld.so.conf.d/openssl-1.1.1d.conf
-            echo "include ld.so.conf.d/*.conf" > /etc/ld.so.conf
-            ldconfig -v
+            build_openssl
             build_python
         fi
         if [ "x$RHEL" = "x7" ]; then
             sed -i '/#!\/bin\/bash/a exit 0' /usr/lib/rpm/brp-python-bytecompile
+            #build_openssl
             build_python
-            pip install certifi || true
 	    sed -i 's:python :python2 :' /usr/bin/yum
 	    sed -i 's:python:python2 :' /usr/libexec/urlgrabber-ext-down
         fi
@@ -498,15 +557,12 @@ install_deps() {
             pip3 install virtualenv
             build_oci_sdk
         elif [ "x$RHEL" = "x7" ]; then
-            pip install --upgrade pip
-            pip install virtualenv
-            pip install certifi || true
+            python3 -m pip install --upgrade pip
+            python3 -m pip install pyyaml
+            python3 -m pip install certifi
+            python3 -m pip install virtualenv
+            python3 -m pip install setuptools
             build_oci_sdk
-        else
-            pip3.7 install --upgrade pip
-            pip3.7 install virtualenv
-            pip3.7 install certifi || true
-            #build_oci_sdk
         fi
     else
         apt-get -y install dirmngr || true
@@ -657,29 +713,29 @@ get_deb_sources(){
 }
 
 build_ssh(){
-        cd "${WORKDIR}"
-            wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.8.9.tar.bz2
-            wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.45.tar.bz2
-
-            tar -xvf libgcrypt-1.8.9.tar.bz2
-            tar -xvf libgpg-error-1.45.tar.bz2
-            rm -f libgpg-error-1.45.tar.bz2 libgcrypt-1.8.9.tar.bz2
-            cd libgpg-error-1.45
-                ./configure
-                make
-                sudo make install
-            cd -
-            cd libgcrypt-1.8.9
-                ./configure
-                make
-                sudo make install
-            cd -
+    cd "${WORKDIR}"
+    wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.8.9.tar.bz2
+    wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.45.tar.bz2
+    tar -xvf libgcrypt-1.8.9.tar.bz2
+    tar -xvf libgpg-error-1.45.tar.bz2
+    rm -f libgpg-error-1.45.tar.bz2 libgcrypt-1.8.9.tar.bz2
+    cd libgpg-error-1.45
+    ./configure
+    make
+    sudo make install
+    cd -
+    cd libgcrypt-1.8.9
+    ./configure --with-libgpg-error-prefix="/usr/local"
+    make
+    sudo make install
+    cd -
     cd "${WORKDIR}"
     wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.3.orig.tar.xz
     tar -xvf libssh_0.9.3.orig.tar.xz
     cd libssh-0.9.3/
     mkdir build
     cd build
+    cmake --version
     cmake  -Wno-error-implicit-function-declaration -DWITH_GCRYPT=OFF -DWITH_ZLIB=OFF -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
     make
     sudo make install
@@ -730,11 +786,11 @@ build_srpm(){
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.29/g' mysql-shell.spec
+    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.30/g' mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.29/g' mysql-shell.spec
+    sed -i 's/@MYSH_VERSION@/8.0.30/g' mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
@@ -742,7 +798,7 @@ build_srpm(){
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
-    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\n%files\n%{_prefix}/lib/mysqlsh/.*\n%{_prefix}/lib/mysqlsh/*:' mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\n%files:' mysql-shell.spec
 
     mv mysql-shell.spec percona-mysql-shell.spec
     cd ${WORKDIR}
@@ -815,13 +871,15 @@ build_rpm(){
     cd ${WORKDIR}
     #
     if [ ${RHEL} = 6 ]; then
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl11" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
         source /opt/rh/devtoolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
-    else
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+    elif [ ${RHEL} = 8 ]; then
         source /opt/rh/gcc-toolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk"  --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+    else
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -1010,7 +1068,7 @@ build_tarball(){
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system
-        elif [ $RHEL = 7 ]; then
+        elif [ $RHEL = 7 -o $RHEL = 9 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
@@ -1023,11 +1081,11 @@ build_tarball(){
                 -DWITH_PROTOBUF=bundled \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python37/include/python3.7m \
-                -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
+                -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python37/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39/
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
@@ -1043,10 +1101,10 @@ build_tarball(){
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
                 -DBUNDLED_OPENSSL_DIR=/usr/local/openssl11 \
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python37/include/python3.7m \
-                -DPYTHON_LIBRARIES=/usr/local/python37/lib/libpython3.7m.so \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
+                -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python37/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39/
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1089,13 +1147,13 @@ ARCH=
 OS=
 PROTOBUF_REPO="https://github.com/protocolbuffers/protobuf.git"
 SHELL_REPO="https://github.com/mysql/mysql-shell.git"
-SHELL_BRANCH="8.0.29"
+SHELL_BRANCH="8.0.30"
 PROTOBUF_BRANCH=v3.19.4
 INSTALL=0
 RPM_RELEASE=1
 DEB_RELEASE=1
 REVISION=0
-BRANCH="release-8.0.29-21"
+BRANCH="release-8.0.30-22"
 RPM_RELEASE=1
 DEB_RELEASE=1
 YASSL=0
