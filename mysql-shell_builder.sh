@@ -220,8 +220,12 @@ get_database(){
     fi
     cmake --build . --target mysqlclient
     cmake --build . --target mysqlxclient
-    cat /mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-8-x64/test/percona-server/bld/CMakeFiles/CMakeOutput.log
-    cat /mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-8-x64/test/percona-server/bld/CMakeFiles/CMakeError.log
+    if [ -f "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeOutput.log" ]; then
+        cat "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeOutput.log"
+    fi
+    if [ -f "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeError.log" ]; then
+        cat "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeError.log"
+    fi
     cd $WORKDIR
     export PATH=$MY_PATH
     return
