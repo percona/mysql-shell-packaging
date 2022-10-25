@@ -189,13 +189,14 @@ get_database(){
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
     fi
     mkdir bld
-    wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.gz
-    #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_1_77_0.tar.gz
-    #wget https://dl.bintray.com/boostorg/release/1.77.0/source/boost_1_77_0.tar.gz
-    tar -xvzf boost_1_77_0.tar.gz
+    BOOST_VER="1.77.0"
+    wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
+    #wget https://dl.bintray.com/boostorg/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    tar -xzf boost_${BOOST_VER//[.]/_}.tar.gz
     mkdir -p $WORKDIR/boost
-    mv boost_1_77_0/* $WORKDIR/boost/
-    rm -rf boost_1_77_0 boost_1_77_0.tar.gz
+    mv boost_${BOOST_VER//[.]/_}/* $WORKDIR/boost/
+    rm -rf boost_${BOOST_VER//[.]/_} boost_${BOOST_VER//[.]/_}.tar.gz
     cd bld
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL = 7 ]; then
