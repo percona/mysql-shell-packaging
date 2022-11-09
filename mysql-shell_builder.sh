@@ -931,7 +931,7 @@ build_source_deb(){
     sed -i 's|(>=0.9.2)||' debian/control
     sed -i 's|libssh-dev ,||' debian/control
     sed -i '17d' debian/control
-    sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
+    sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules.in
     dch -D unstable --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}" "Update to new upstream release ${VERSION}-${RELEASE}-1"
     dpkg-buildpackage -S
     cd ${WORKDIR}
