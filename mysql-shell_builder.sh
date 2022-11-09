@@ -1001,7 +1001,6 @@ build_deb(){
     if [ "x$OS_NAME" = "xfocal" ]; then
         grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     fi
-    cat debian/rules
     dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
     dpkg-buildpackage -rfakeroot -uc -us -b
     cd ${WORKDIR}
