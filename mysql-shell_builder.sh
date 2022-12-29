@@ -432,6 +432,7 @@ build_python(){
     /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install certifi
     /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install virtualenv
     /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install setuptools
+    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install --upgrade setuptools
 }
 
 install_deps() {
@@ -539,6 +540,7 @@ install_deps() {
             python3 -m pip install certifi
             python3 -m pip install virtualenv
             python3 -m pip install setuptools
+            python3 -m pip install --upgrade setuptools
         fi
         if [ "x$RHEL" = "x6" ]; then
             yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm
@@ -567,6 +569,7 @@ install_deps() {
             python3 -m pip install certifi
             python3 -m pip install virtualenv
             python3 -m pip install setuptools
+            python3 -m pip install --upgrade setuptools
             build_oci_sdk
         fi
     else
@@ -1155,12 +1158,10 @@ SHELL_REPO="https://github.com/mysql/mysql-shell.git"
 SHELL_BRANCH="8.0.30"
 PROTOBUF_BRANCH=v3.19.4
 INSTALL=0
-RPM_RELEASE=1
-DEB_RELEASE=1
 REVISION=0
 BRANCH="release-8.0.30-22"
-RPM_RELEASE=1
-DEB_RELEASE=1
+RPM_RELEASE=2
+DEB_RELEASE=2
 YASSL=0
 REPO="https://github.com/percona/percona-server.git"
 MYSQL_VERSION_EXTRA=-1
