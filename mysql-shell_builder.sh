@@ -110,15 +110,35 @@ EOL
 
 get_cmake(){
     cd ${WORKDIR}
-    apt -y purge cmake*
-    apt-get -y install build-essential
-    wget --no-check-certificate http://www.cmake.org/files/v3.6/cmake-3.6.3.tar.gz
-    tar xf cmake-3.6.3.tar.gz
-    cd cmake-3.6.3
+    local CMAKE_VERSION="$1"
+    if [ "x$OS" = "xrpm" ]; then
+        yum group install "Development Tools"
+        yum remove cmake
+        PATH=$PATH:/usr/local/bin
+    else
+        apt -y purge cmake*
+        apt-get -y install build-essential
+    fi
+    wget --no-check-certificate http://www.cmake.org/files/v${CMAKE_VERSION::(${#CMAKE_VERSION}-2)}/cmake-${CMAKE_VERSION}.tar.gz
+    tar xf cmake-${CMAKE_VERSION}.tar.gz
+    cd cmake-${CMAKE_VERSION}
     ./configure
     make
     make install
+    hash -r
+    cmake --version
     cd ${WORKDIR}
+}
+
+get_antlr4-runtime(){
+    cd "${WORKDIR}"
+    git clone https://github.com/antlr/antlr4.git
+    cd antlr4/runtime/Cpp
+    git checkout v4.10.1
+    mkdir build && mkdir run && cd build
+    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
+    make
+    mkdir -p /opt/antlr4 && DESTDIR=/opt/antlr4 make install
 }
 
 get_protobuf(){
@@ -208,11 +228,11 @@ get_database(){
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
         else
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
         fi
     else
         #uncomment once boost downloads are fixed
@@ -292,11 +312,11 @@ get_sources(){
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
-        cmake .
+        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y)
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     else
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y)
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     fi
     sed -i 's/-src//g' CPack*
     cpack -G TGZ --config CPackSourceConfig.cmake
@@ -461,7 +481,7 @@ install_deps() {
             yum -y install dnf-plugins-core
             if [ "x$RHEL" = "x8" ]; then
                 yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
-	        subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+                subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
             fi
             yum -y install epel-release
             yum -y install git
@@ -477,8 +497,9 @@ install_deps() {
             yum -y install python3-virtualenv || true
             yum -y install openldap-devel
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
-	    yum -y install cmake
+            yum -y install cmake
             yum -y install libcmocka-devel libffi-devel
+            yum -y install libuuid-devel pkgconf-pkg-config
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install MySQL-python
                 yum -y install centos-release-stream
@@ -487,6 +508,10 @@ install_deps() {
                 yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel gcc-toolset-11-annobin-plugin-gcc
                 yum -y remove centos-release-stream
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
+                # bug https://github.com/openzfs/zfs/issues/14386
+                pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/x86_64-redhat-linux/11/plugin/
+                ln -s annobin.so gcc-annobin.so
+                popd
             fi
             if [ "x$RHEL" = "x9" ]; then
                 yum -y install krb5-devel
@@ -505,11 +530,8 @@ install_deps() {
             yum -y install perl-Env perl-Data-Dumper perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 || true
             yum -y install libicu-devel automake m4 libtool python-devel zip rpmlint
             yum -y install libcmocka-devel
+            yum -y install libuuid-devel pkgconf-pkg-config
             until yum -y install centos-release-scl; do
-                echo "waiting"
-                sleep 1
-            done
-            until yum -y install centos-release-scl-rh; do
                 echo "waiting"
                 sleep 1
             done
@@ -519,7 +541,7 @@ install_deps() {
                 rm -f /usr/bin/cmake
                 cp -p /usr/bin/cmake3 /usr/bin/cmake
             fi
-            yum -y install gcc-c++ devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3
+            yum -y install gcc-c++ devtoolset-7-gcc* devtoolset-7-binutils cmake3
             yum -y install rh-python38 rh-python38-devel rh-python38-pip
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
             yum -y install krb5-devel
@@ -571,6 +593,7 @@ install_deps() {
             python3 -m pip install setuptools
             python3 -m pip install --upgrade setuptools
             build_oci_sdk
+            get_cmake 3.14.7
         fi
     else
         apt-get -y install dirmngr || true
@@ -602,6 +625,8 @@ install_deps() {
         apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
         apt-get -y install libkrb5-dev
         apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
+        apt-get -y install libantlr4-runtime-dev
+        apt-get -y install uuid-dev pkg-config
         if [ x"${DIST}" = xbionic ]; then
             apt-get -y install gcc-8 g++-8
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
@@ -609,7 +634,7 @@ install_deps() {
         else
             apt-get -y install gcc g++
         fi
-        if [ -o "x$OS_NAME" = "xbullseye" ]; then
+        if [ "x$OS_NAME" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
 	fi
         
@@ -664,7 +689,7 @@ install_deps() {
         ${PIP_UTIL} install virtualenv || pip install virtualenv || pip3 install virtualenv || true
         build_oci_sdk
         if [ "x$OS_NAME" = "xxenial" ]; then
-            get_cmake
+            get_cmake 3.6.3
         fi
         
     fi
@@ -680,6 +705,14 @@ install_deps() {
         cd ${CURPLACE}
     fi
     get_protobuf
+    if [ "x$OS_NAME" = "xbionic" -o "x$OS_NAME" = "xbuster" ]; then
+        get_cmake 3.14.7
+    fi
+    if [ "x$RHEL" = "x7" ]; then
+        source /opt/rh/devtoolset-7/enable
+        g++ --version
+    fi
+    get_antlr4-runtime
     return;
 }
 get_tar(){
@@ -795,11 +828,11 @@ build_srpm(){
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
-    sed -i 's/@MYSH_NO_DASH_VERSION@/8.0.31/g' mysql-shell.spec
+    sed -i "s/@MYSH_NO_DASH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i "s:@RPM_RELEASE@:${RPM_RELEASE}:g" mysql-shell.spec
     sed -i 's/@LICENSE_TYPE@/GPLv2/g' mysql-shell.spec
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
-    sed -i 's/@MYSH_VERSION@/8.0.31/g' mysql-shell.spec
+    sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
@@ -807,7 +840,7 @@ build_srpm(){
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
-    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\n%files:' mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\ncp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/\n%files:' mysql-shell.spec
 
     mv mysql-shell.spec percona-mysql-shell.spec
     cd ${WORKDIR}
@@ -867,9 +900,9 @@ build_rpm(){
         source /opt/rh/devtoolset-7/enable
         source /opt/rh/rh-python38/enable
     fi
+    get_v8
     get_protobuf
     get_database
-    get_v8
     build_oci_sdk
     if [ $RHEL = 7 ]; then
         source /opt/rh/devtoolset-7/enable
@@ -877,18 +910,19 @@ build_rpm(){
     elif [ $RHEL = 6 ]; then
         source /opt/rh/devtoolset-7/enable
     fi
+    get_antlr4-runtime
     cd ${WORKDIR}
     #
     if [ ${RHEL} = 6 ]; then
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
         source /opt/rh/devtoolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 8 ]; then
         source /opt/rh/gcc-toolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -995,7 +1029,7 @@ build_deb(){
     cp debian/mysql-shell.install debian/install
     echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1:-DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    sed -i "s:VERBOSE=1:-DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
