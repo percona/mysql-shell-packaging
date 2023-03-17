@@ -210,9 +210,8 @@ get_database(){
     fi
     mkdir bld
     BOOST_VER="1.77.0"
-    wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
-    #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
-    #wget https://dl.bintray.com/boostorg/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    #wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
     tar -xzf boost_${BOOST_VER//[.]/_}.tar.gz
     mkdir -p $WORKDIR/boost
     mv boost_${BOOST_VER//[.]/_}/* $WORKDIR/boost/
@@ -239,6 +238,7 @@ get_database(){
         #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
         cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
     fi
+    cmake --build . --target authentication_oci_client
     cmake --build . --target mysqlclient
     cmake --build . --target mysqlxclient
     if [ -f "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeOutput.log" ]; then
@@ -267,7 +267,7 @@ get_sources(){
         echo "Sources will not be downloaded"
         return 0
     fi
-        build_ssh
+    #build_ssh
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
@@ -312,9 +312,9 @@ get_sources(){
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
-        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python310"
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python310" -DPYTHON_INCLUDE_DIRS="/usr/local/python310/include/python3.10" -DPYTHON_LIBRARIES="/usr/local/python310/lib/libpython3.10.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     else
         cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     fi
@@ -411,48 +411,71 @@ build_openssl(){
 
 build_python(){
     cd ${WORKDIR}
-    if [ $RHEL -le 8 ]; then
-        pversion="3.9.15"
-    else
-	pversion="3.8.9"
+    if [ "x$OS" = "xrpm" ]; then
+        if [ $RHEL -le 8 ]; then
+            pversion="3.9.15"
+        else
+	    pversion="3.8.9"
+        fi
+    else # OS=deb
+        pversion="3.10.8"
     fi
+    arraypversion=(${pversion//\./ })
     wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
     tar xzf Python-${pversion}.tgz
     cd Python-${pversion}
-    if [ $RHEL -le 7 -o $RHEL = 9 ]; then
-        sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
+    if [ "x$OS" = "xrpm" ]; then
+        if [ $RHEL -le 7 -o $RHEL = 9 ]; then
+            sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
+        fi
+        if [ $RHEL -le 8 ]; then
+            sed -i '210 s/^##*//' Modules/Setup
+            sed -i '214,217 s/^##*//' Modules/Setup
+        else
+            sed -i '206 s/^##*//' Modules/Setup
+            sed -i '210,213 s/^##*//' Modules/Setup
+        fi
+    else # OS=deb
+        sed -i 's/OPENSSL=\/path\/to\/openssl\/directory/OPENSSL=\/usr\/include\/openssl/g' Modules/Setup
+        sed -i '207 s/^##*//' Modules/Setup
+        sed -i '211,214 s/^##*//' Modules/Setup
     fi
-    if [ $RHEL -le 8 ]; then
-        sed -i '210 s/^##*//' Modules/Setup
-        sed -i '214,217 s/^##*//' Modules/Setup
+    if [ "x$OS" = "xrpm" ]; then
+        if [ $RHEL -le 7 ]; then
+            ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+        elif [ $RHEL = 9 ]; then
+            ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
+        else # el8
+            ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+       fi
     else
-        sed -i '206 s/^##*//' Modules/Setup
-        sed -i '210,213 s/^##*//' Modules/Setup
-    fi
-    if [ $RHEL -le 7 ]; then
-        ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
-    elif [ $RHEL = 9 ]; then
-        ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
-    else
-        ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+        ./configure --prefix=/usr/local/python310 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python310/lib
     fi
     make
     make altinstall
-    echo "/usr/local/python3${pversion:2:1}/lib" > /etc/ld.so.conf.d/python-3.${pversion:2:1}.conf
-    echo "/usr/local/python3${pversion:2:1}/lib64" >> /etc/ld.so.conf.d/python-3.${pversion:2:1}.conf
-    #update-alternatives --remove-all python3
-    #update-alternatives --install /usr/bin/python3 python3 /usr/local/python39/bin/python3 100
-    #update-alternatives --remove-all pip3
-    #update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python39/bin/pip3 100
+    bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
+    bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
+    #if [ "x$OS" = "xdeb" ]; then
+    #    update-alternatives --remove-all python3
+    #    update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
+    #    update-alternatives --remove-all pip3
+    #    update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python3${arraypversion[1]}/bin/pip3 100
+    #    if [ "x$OS_NAME" = "xbionic" ]; then
+    #        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.6 -Es:' /usr/bin/lsb_release
+    #    fi
+    #    if [ "x$OS_NAME" = "xbuster" ]; then
+    #        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.7 -Es:' /usr/bin/lsb_release
+    #    fi
+    #fi
     cd ../
     python3 -m site
-    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install --upgrade pip
-    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install pyyaml
-    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install certifi
-    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install virtualenv
-    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install setuptools
-    /usr/local/python3${pversion:2:1}/bin/python3.${pversion:2:1} -m pip install --upgrade setuptools
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade pip
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install pyyaml
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install certifi
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install virtualenv
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install setuptools
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
 }
 
 install_deps() {
@@ -594,10 +617,12 @@ install_deps() {
             python3 -m pip install --upgrade setuptools
             build_oci_sdk
             get_cmake 3.14.7
+            source /opt/rh/devtoolset-7/enable
+            g++ --version
         fi
-    else
-        apt-get -y install dirmngr || true
+    else #OS: deb
         apt-get update
+        sleep 20
         apt-get -y install dirmngr || true
         apt-get -y install lsb-release wget
         wget --no-check-certificate https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
@@ -677,7 +702,6 @@ install_deps() {
             fi
             apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
             build_ssh
-
         fi
         if [ "x$OS_NAME" != "xbuster" ]; then
             if [ "x$OS_NAME" = "xxenial" ]; then
@@ -691,11 +715,12 @@ install_deps() {
         if [ "x$OS_NAME" = "xxenial" ]; then
             get_cmake 3.6.3
         fi
-        
-    fi
-    if [ "x$OS_NAME" = "xbionic" -o "x$OS_NAME" = "xbuster" ]; then
-        apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
-        build_ssh
+        if [ "x$OS_NAME" = "xbionic" -o "x$OS_NAME" = "xbuster" ]; then
+            build_ssh
+            get_cmake 3.16.3
+        fi
+        build_python
+        ln -s /usr/local/python3.10/lib /usr/lib/python3.10
     fi
     if [ ! -d /usr/local/percona-subunit2junitxml ]; then
         cd /usr/local
@@ -705,16 +730,10 @@ install_deps() {
         cd ${CURPLACE}
     fi
     get_protobuf
-    if [ "x$OS_NAME" = "xbionic" -o "x$OS_NAME" = "xbuster" ]; then
-        get_cmake 3.14.7
-    fi
-    if [ "x$RHEL" = "x7" ]; then
-        source /opt/rh/devtoolset-7/enable
-        g++ --version
-    fi
     get_antlr4-runtime
     return;
 }
+
 get_tar(){
     TARBALL=$1
     TARFILE=$(basename $(find $WORKDIR/$TARBALL -name 'percona-mysql-shell*.tar.gz' | sort | tail -n1))
@@ -733,6 +752,7 @@ get_tar(){
     fi
     return
 }
+
 get_deb_sources(){
     param=$1
     echo $param
@@ -841,6 +861,8 @@ build_srpm(){
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
     sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\ncp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/\n%files:' mysql-shell.spec
+    sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
+    sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
 
     mv mysql-shell.spec percona-mysql-shell.spec
     cd ${WORKDIR}
@@ -856,6 +878,7 @@ build_srpm(){
     export PATH=$MY_PATH
     return
 }
+
 build_rpm(){
     MY_PATH=$(echo $PATH)
     if [ $RPM = 0 ]
@@ -934,6 +957,7 @@ build_rpm(){
     cp rpmbuild/RPMS/*/*.rpm ${CURDIR}/rpm
     export PATH=$MY_PATH
 }
+
 build_source_deb(){
     if [ $SDEB = 0 ]
     then
@@ -1029,7 +1053,11 @@ build_deb(){
     cp debian/mysql-shell.install debian/install
     echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1:-DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+#    if [ "x$OS_NAME" = "xbuster" -o "x$OS_NAME" = "xbionic" ]; then
+        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python310\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python310/include/python3.10\" -DPYTHON_LIBRARIES=\"/usr/local/python310/lib/libpython3.10.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+#    else
+#        sed -i "s:VERBOSE=1:-DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+#   fi
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
@@ -1048,6 +1076,7 @@ build_deb(){
     cp $WORKDIR/*.deb $WORKDIR/deb
     cp $WORKDIR/*.deb $CURDIR/deb
 }
+
 build_tarball(){
     if [ $TARBALL = 0 ]
     then
