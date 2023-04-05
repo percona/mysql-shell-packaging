@@ -267,7 +267,7 @@ get_sources(){
         echo "Sources will not be downloaded"
         return 0
     fi
-    #build_ssh
+    build_ssh
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
@@ -312,9 +312,9 @@ get_sources(){
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
-        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python310"
+        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python311"
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python310" -DPYTHON_INCLUDE_DIRS="/usr/local/python310/include/python3.10" -DPYTHON_LIBRARIES="/usr/local/python310/lib/libpython3.10.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python311" -DPYTHON_INCLUDE_DIRS="/usr/local/python311/include/python3.11" -DPYTHON_LIBRARIES="/usr/local/python311/lib/libpython3.11.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     else
         cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     fi
@@ -392,10 +392,16 @@ build_openssl(){
     else
         fullversion="openssl-${version}"
     fi
-    wget --no-check-certificate https://github.com/openssl/openssl/archive/${fullversion}.tar.gz
-    tar -xvzf ${fullversion}.tar.gz
-    cd openssl-${fullversion}/
-    ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl shared zlib
+    if [ ${version:0:1} -eq "3" ]; then
+        wget --no-check-certificate https://github.com/openssl/openssl/releases/download/${fullversion}/${fullversion}.tar.gz
+        tar -xvzf ${fullversion}.tar.gz
+        cd ${fullversion}/
+    else
+        wget --no-check-certificate https://github.com/openssl/openssl/archive/${fullversion}.tar.gz
+        tar -xvzf ${fullversion}.tar.gz
+        cd openssl-${fullversion}/
+    fi
+    ./config --prefix=/usr/local --openssldir=/usr/local/openssl shared zlib
     make -j4
     make install
     cd ../
@@ -418,7 +424,7 @@ build_python(){
 	    pversion="3.8.9"
         fi
     else # OS=deb
-        pversion="3.10.8"
+        pversion="3.11.2"
     fi
     arraypversion=(${pversion//\./ })
     wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
@@ -435,10 +441,6 @@ build_python(){
             sed -i '206 s/^##*//' Modules/Setup
             sed -i '210,213 s/^##*//' Modules/Setup
         fi
-    else # OS=deb
-        sed -i 's/OPENSSL=\/path\/to\/openssl\/directory/OPENSSL=\/usr\/include\/openssl/g' Modules/Setup
-        sed -i '207 s/^##*//' Modules/Setup
-        sed -i '211,214 s/^##*//' Modules/Setup
     fi
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
@@ -447,9 +449,9 @@ build_python(){
             ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
         else # el8
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
-       fi
+        fi
     else
-        ./configure --prefix=/usr/local/python310 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python310/lib
+       ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
     fi
     make
     make altinstall
@@ -474,6 +476,8 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install pyyaml
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install certifi
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install virtualenv
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install cryptography
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install oci
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
 }
@@ -637,7 +641,7 @@ install_deps() {
         apt-get -y install psmisc
         apt-get -y install libsasl2-modules:amd64 || apt-get -y install libsasl2-modules
         apt-get -y install dh-systemd || true
-        apt-get -y install curl bison cmake perl libssl-dev libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk
+        apt-get -y install curl bison cmake perl libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk
         apt-get -y install lsb-release libmecab-dev libncurses5-dev libreadline-dev libpam-dev zlib1g-dev libcurl4-openssl-dev
         apt-get -y install libldap2-dev libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libsasl2-dev
         apt-get -y install libeatmydata
@@ -684,10 +688,11 @@ install_deps() {
             apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
         fi
-            apt-get -y install python python-dev
-            apt-get -y install python27-dev
-            apt-get -y install python3 python3-pip
-            apt-get -y install python3-dev || true
+        apt-get -y install python python-dev
+        apt-get -y install python27-dev
+        apt-get -y install python3 python3-pip
+        apt-get -y install python3-dev || true
+        apt-get -y install libffi-dev || true
         PIP_UTIL="pip3"
         if [ "x$OS_NAME" = "xxenial" ]; then
             update-alternatives --install /usr/bin/python python /usr/bin/python3 1
@@ -720,7 +725,7 @@ install_deps() {
             get_cmake 3.16.3
         fi
         build_python
-        ln -s /usr/local/python3.10/lib /usr/lib/python3.10
+        ln -s /usr/local/python3.11/lib /usr/lib/python3.11
     fi
     if [ ! -d /usr/local/percona-subunit2junitxml ]; then
         cd /usr/local
@@ -1053,11 +1058,7 @@ build_deb(){
     cp debian/mysql-shell.install debian/install
     echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-#    if [ "x$OS_NAME" = "xbuster" -o "x$OS_NAME" = "xbionic" ]; then
-        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python310\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python310/include/python3.10\" -DPYTHON_LIBRARIES=\"/usr/local/python310/lib/libpython3.10.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
-#    else
-#        sed -i "s:VERBOSE=1:-DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
-#   fi
+    sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python311\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python311/include/python3.11\" -DPYTHON_LIBRARIES=\"/usr/local/python311/lib/libpython3.11.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
