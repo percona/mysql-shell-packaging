@@ -1141,7 +1141,8 @@ build_tarball(){
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
-                -DBUNDLED_OPENSSL_DIR=system
+                -DBUNDLED_OPENSSL_DIR=system \
+                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
         elif [ $RHEL = 7 -o $RHEL = 9 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
@@ -1159,7 +1160,8 @@ build_tarball(){
                 -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39/ \
+                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
@@ -1178,7 +1180,8 @@ build_tarball(){
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
                 -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39/ \
+                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1190,7 +1193,8 @@ build_tarball(){
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
-            -DWITH_STATIC_LINKING=ON
+            -DWITH_STATIC_LINKING=ON \
+            -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
     fi
     make -j4
     mkdir ${NAME}-${VERSION}-${OS_NAME}
