@@ -1112,6 +1112,7 @@ build_tarball(){
     #
     get_database
     get_v8
+    build_ssh
     build_oci_sdk
     cd ${WORKDIR}
     rm -fr ${TARFILE%.tar.gz}
@@ -1195,6 +1196,9 @@ build_tarball(){
             -DWITH_OCI=$WORKDIR/oci_sdk \
             -DWITH_STATIC_LINKING=ON \
             -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
+            -DBUNDLED_PYTHON_DIR=/usr/local/python311
+            -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11
+            -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so
     fi
     make -j4
     mkdir ${NAME}-${VERSION}-${OS_NAME}
