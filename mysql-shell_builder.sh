@@ -1143,9 +1143,9 @@ build_tarball(){
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system \
-                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
-                -DBUNDLED_PYTHON_DIR=/usr/local/python38
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python38/include/python3.8
+                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python38 \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python38/include/python3.8 \
                 -DPYTHON_LIBRARIES=/usr/local/python38/lib/libpython3.8.so
         elif [ $RHEL = 7 -o $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1164,7 +1164,7 @@ build_tarball(){
                 -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39/ \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1184,7 +1184,7 @@ build_tarball(){
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
                 -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39/ \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
         fi
     else
@@ -1198,9 +1198,9 @@ build_tarball(){
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
             -DWITH_STATIC_LINKING=ON \
-            -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
-            -DBUNDLED_PYTHON_DIR=/usr/local/python311
-            -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11
+            -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
+            -DBUNDLED_PYTHON_DIR=/usr/local/python311 \
+            -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
             -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so
     fi
     make -j4
