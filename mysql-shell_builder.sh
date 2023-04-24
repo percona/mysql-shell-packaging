@@ -1128,7 +1128,7 @@ build_tarball(){
         if [ $RHEL = 8 ]; then
             source /opt/rh/gcc-toolset-11/enable
         fi
-        if [ $RHEL = 8 ]; then
+        if [ $RHEL = 9 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
@@ -1144,7 +1144,10 @@ build_tarball(){
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
-        elif [ $RHEL = 7 -o $RHEL = 9 ]; then
+                -DBUNDLED_PYTHON_DIR=/usr/local/python38
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python38/include/python3.8
+                -DPYTHON_LIBRARIES=/usr/local/python38/lib/libpython3.8.so
+        elif [ $RHEL = 7 -o $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
