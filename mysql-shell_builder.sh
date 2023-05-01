@@ -1112,6 +1112,7 @@ build_tarball(){
     #
     get_database
     get_v8
+    build_ssh
     build_oci_sdk
     cd ${WORKDIR}
     rm -fr ${TARFILE%.tar.gz}
@@ -1127,7 +1128,7 @@ build_tarball(){
         if [ $RHEL = 8 ]; then
             source /opt/rh/gcc-toolset-11/enable
         fi
-        if [ $RHEL = 8 ]; then
+        if [ $RHEL = 9 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
@@ -1141,8 +1142,12 @@ build_tarball(){
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
-                -DBUNDLED_OPENSSL_DIR=system
-        elif [ $RHEL = 7 -o $RHEL = 9 ]; then
+                -DBUNDLED_OPENSSL_DIR=system \
+                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python38 \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python38/include/python3.8 \
+                -DPYTHON_LIBRARIES=/usr/local/python38/lib/libpython3.8.so
+        elif [ $RHEL = 7 -o $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
@@ -1159,7 +1164,8 @@ build_tarball(){
                 -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
+                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
@@ -1178,7 +1184,8 @@ build_tarball(){
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
                 -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39/
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
+                -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1190,7 +1197,11 @@ build_tarball(){
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
-            -DWITH_STATIC_LINKING=ON
+            -DWITH_STATIC_LINKING=ON \
+            -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
+            -DBUNDLED_PYTHON_DIR=/usr/local/python311 \
+            -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
+            -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so
     fi
     make -j4
     mkdir ${NAME}-${VERSION}-${OS_NAME}
