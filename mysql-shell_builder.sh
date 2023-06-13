@@ -112,8 +112,8 @@ get_cmake(){
     cd ${WORKDIR}
     local CMAKE_VERSION="$1"
     if [ "x$OS" = "xrpm" ]; then
-        yum group install "Development Tools"
-        yum remove cmake
+        yum -y group install "Development Tools"
+        yum -y remove cmake
         PATH=$PATH:/usr/local/bin
     else
         apt -y purge cmake*
@@ -137,8 +137,11 @@ get_antlr4-runtime(){
     git checkout v4.10.1
     mkdir build && mkdir run && cd build
     cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
-    make
-    mkdir -p /opt/antlr4 && DESTDIR=/opt/antlr4 make install
+    make -j8
+    sudo mkdir -p /opt/antlr4
+    sudo chmod a+w /opt/antlr4
+    export DESTDIR=/opt/antlr4
+    make install
 }
 
 get_protobuf(){
@@ -207,6 +210,9 @@ get_database(){
         git submodule init
         git submodule update
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
+        if [ $RHEL = 8 ]; then
+            sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
+        fi
     fi
     mkdir bld
     BOOST_VER="1.77.0"
@@ -241,12 +247,9 @@ get_database(){
     cmake --build . --target authentication_oci_client
     cmake --build . --target mysqlclient
     cmake --build . --target mysqlxclient
-    if [ -f "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeOutput.log" ]; then
-        cat "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeOutput.log"
-    fi
-    if [ -f "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeError.log" ]; then
-        cat "/mnt/workspace/mysql-shell-8.0-redhat-binary/label_exp/min-rhel-${RHEL}-x64/test/percona-server/bld/CMakeFiles/CMakeError.log"
-    fi
+    cmake --build . --target authentication_fido_client
+    cmake --build . --target authentication_ldap_sasl_client
+    cmake --build . --target authentication_kerberos_client
     cd $WORKDIR
     export PATH=$MY_PATH
     return
@@ -254,9 +257,9 @@ get_database(){
 
 get_v8(){
     cd ${WORKDIR}
-    wget --no-check-certificate https://jenkins.percona.com/downloads/v8_8.5.210.20.tar.gz
-    tar -xzf v8_8.5.210.20.tar.gz
-    rm -rf v8_8.5.210.20.tar.gz
+    wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10.tar.gz
+    tar -xzf v8_10.9.194.10.tar.gz
+    rm -rf v8_10.9.194.10.tar.gz
 }
 
 get_sources(){
@@ -287,7 +290,7 @@ get_sources(){
     then
         git reset --hard
         git clean -xdf
-        git checkout "$SHELL_BRANCH"
+        git checkout tags/"$SHELL_BRANCH"
     fi
     if [ -z "${DESTINATION:-}" ]; then
         export DESTINATION=experimental
@@ -304,11 +307,10 @@ get_sources(){
     echo "DESTINATION=${DESTINATION}" >> ../mysql-shell.properties
     TIMESTAMP=$(date "+%Y%m%d-%H%M%S")
     echo "UPLOAD=UPLOAD/${DESTINATION}/BUILDS/mysql-shell/mysql-shell-80/${SHELL_BRANCH}/${TIMESTAMP}" >> ../mysql-shell.properties
-    #sed -i 's:3.8:3.6:g' CMakeLists.txt
-    sed -i 's:toolset-10:toolset-11:g' CMakeLists.txt
     #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
+    sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
@@ -527,12 +529,12 @@ install_deps() {
             yum -y install cmake
             yum -y install libcmocka-devel libffi-devel
             yum -y install libuuid-devel pkgconf-pkg-config
+            yum -y install patchelf
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install MySQL-python
                 yum -y install centos-release-stream
-                yum -y install gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils
-                yum -y install gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel
-                yum -y install gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel gcc-toolset-11-annobin-plugin-gcc
+                yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
+                yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
                 yum -y remove centos-release-stream
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
                 # bug https://github.com/openzfs/zfs/issues/14386
@@ -543,6 +545,10 @@ install_deps() {
             if [ "x$RHEL" = "x9" ]; then
                 yum -y install krb5-devel
                 yum -y install zlib zlib-devel
+                yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
+                pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/x86_64-redhat-linux/12/plugin/
+                ln -s annobin.so gcc-annobin.so
+                popd
             fi
             build_python
             #build_oci_sdk
@@ -558,6 +564,7 @@ install_deps() {
             yum -y install libicu-devel automake m4 libtool python-devel zip rpmlint
             yum -y install libcmocka-devel
             yum -y install libuuid-devel pkgconf-pkg-config
+            yum -y install patchelf
             until yum -y install centos-release-scl; do
                 echo "waiting"
                 sleep 1
@@ -596,7 +603,6 @@ install_deps() {
             percona-release enable tools testing
             yum -y install Percona-Server-shared-56
             yum install -y percona-devtoolset-gcc percona-devtoolset-binutils python-devel percona-devtoolset-gcc-c++ percona-devtoolset-libstdc++-devel percona-devtoolset-valgrind-devel
-            yum install -y patchelf
             sed -i "668s:(void:(const void:" /usr/include/openssl/bio.h
             build_openssl
             build_python
@@ -624,6 +630,7 @@ install_deps() {
             source /opt/rh/devtoolset-7/enable
             g++ --version
         fi
+        yum -y install libudev-devel
     else #OS: deb
         apt-get update
         sleep 20
@@ -655,7 +662,9 @@ install_deps() {
         apt-get -y install libkrb5-dev
         apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
         apt-get -y install libantlr4-runtime-dev
-        apt-get -y install uuid-dev pkg-config
+        apt-get -y install uuid-dev
+        apt-get -y install pkg-config
+        apt-get -y install libudev-dev
         if [ x"${DIST}" = xbionic ]; then
             apt-get -y install gcc-8 g++-8
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
@@ -675,15 +684,17 @@ install_deps() {
             apt-get update
         elif [ "x$OS_NAME" = "xfocal" -o "x$OS_NAME" = "xbullseye" ]; then
             apt-get -y install python3-mysqldb
-            echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
-            echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
-            echo "deb http://archive.ubuntu.com/ubuntu bionic universe" >> /etc/apt/sources.list
-            apt-get update
-            apt-get -y install gcc-4.8 g++-4.8
-            sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic main restricted;;' /etc/apt/sources.list
-            sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted;;' /etc/apt/sources.list
-            sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic universe;;' /etc/apt/sources.list
-            apt-get update
+            #echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
+            #echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
+            #echo "deb http://archive.ubuntu.com/ubuntu bionic universe" >> /etc/apt/sources.list
+            #apt-get update
+            #apt-get -y install gcc-4.8 g++-4.8
+            #sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic main restricted;;' /etc/apt/sources.list
+            #sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted;;' /etc/apt/sources.list
+            #sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic universe;;' /etc/apt/sources.list
+            #apt-get update
+            apt install -y gcc-10 g++-10 cpp-10
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
         else
             apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
@@ -859,15 +870,16 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=bundled -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
-    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\ncp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/\n%files:' mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
     sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
+    #sed -i 's:%{?_smp_mflags}:VERBOSE=1:g' mysql-shell.spec # if a one thread is required 
 
     mv mysql-shell.spec percona-mysql-shell.spec
     cd ${WORKDIR}
@@ -930,6 +942,10 @@ build_rpm(){
     fi
     get_v8
     get_protobuf
+    if [ $RHEL = 9 ]; then
+        sudo yum -y remove gcc gcc-c++
+        sudo update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/usr/bin/gcc 200 --slave /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/usr/bin/g++ --slave /usr/bin/gcov gcov /opt/rh/gcc-toolset-12/root/usr/bin/gcov
+    fi
     get_database
     build_oci_sdk
     if [ $RHEL = 7 ]; then
@@ -942,15 +958,15 @@ build_rpm(){
     cd ${WORKDIR}
     #
     if [ ${RHEL} = 6 ]; then
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
         source /opt/rh/devtoolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 8 ]; then
         source /opt/rh/gcc-toolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/x64.release.sample/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -1058,7 +1074,7 @@ build_deb(){
     cp debian/mysql-shell.install debian/install
     echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python311\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python311/include/python3.11\" -DPYTHON_LIBRARIES=\"/usr/local/python311/lib/libpython3.11.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python311\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python311/include/python3.11\" -DPYTHON_LIBRARIES=\"/usr/local/python311/lib/libpython3.11.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=${WORKDIR}/protobuf/src -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
@@ -1134,7 +1150,7 @@ build_tarball(){
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DWITH_PROTOBUF=${WORKDIR}/protobuf/src \
                 -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj \
+                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
                 -DHAVE_PYTHON=1 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
@@ -1153,7 +1169,7 @@ build_tarball(){
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DWITH_PROTOBUF=${WORKDIR}/protobuf/src \
                 -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj \
+                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
                 -DHAVE_PYTHON=1 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
@@ -1172,7 +1188,7 @@ build_tarball(){
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DWITH_PROTOBUF=${WORKDIR}/protobuf/src \
                 -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj \
+                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
                 -DHAVE_PYTHON=2 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
@@ -1193,7 +1209,7 @@ build_tarball(){
             -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
             -DWITH_PROTOBUF=${WORKDIR}/protobuf/src \
             -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-            -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/x64.release.sample/obj \
+            -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_OCI=$WORKDIR/oci_sdk \
@@ -1237,8 +1253,8 @@ PROTOBUF_BRANCH=v3.19.4
 INSTALL=0
 REVISION=0
 BRANCH="release-8.0.31-23"
-RPM_RELEASE=2
-DEB_RELEASE=2
+RPM_RELEASE=1
+DEB_RELEASE=1
 YASSL=0
 REPO="https://github.com/percona/percona-server.git"
 MYSQL_VERSION_EXTRA=-1
