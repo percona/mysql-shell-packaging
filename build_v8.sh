@@ -2,6 +2,8 @@
 #
 # https://github.com/jeroen/build-v8-static
 #
+# Next gn flags are required for arm support
+# target_cpu="arm64" v8_target_cpu="arm64"
 
 tag="10.9.194.10"
 if [ "$1" ]
@@ -12,7 +14,7 @@ echo "Build v8. Version $tag"
 
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools
 export PATH=$(pwd)/depot_tools:$PATH
-fetch v8
+yes | fetch v8
 cd v8
 gclient sync -D --force --reset
 gclient sync --revision tags/$tag
