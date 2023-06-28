@@ -102,7 +102,7 @@ add_percona_apt_repo(){
 deb http://jenkins.percona.com/apt-repo/ @@DIST@@ main
 deb-src http://jenkins.percona.com/apt-repo/ @@DIST@@ main
 EOL
-        sed -i "s:@@DIST@@:$OS_NAME:g" /etc/apt/sources.list.d/percona-dev.list
+        sed -i "s:@@DIST@@:${DIST}:g" /etc/apt/sources.list.d/percona-dev.list
     fi
     wget -qO - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add -
     return
@@ -138,8 +138,8 @@ get_antlr4-runtime(){
     mkdir build && mkdir run && cd build
     cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
     make -j8
-    sudo mkdir -p /opt/antlr4
-    sudo chmod a+w /opt/antlr4
+    mkdir -p /opt/antlr4
+    chmod a+w /opt/antlr4
     export DESTDIR=/opt/antlr4
     make install
 }
@@ -176,7 +176,7 @@ get_protobuf(){
     bash -x autogen.sh
     bash -x configure --disable-shared
     make
-    sudo make install
+    make install
     mv src/.libs src/lib
     export PATH=$MY_PATH
     return
@@ -257,9 +257,15 @@ get_database(){
 
 get_v8(){
     cd ${WORKDIR}
-    wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10.tar.gz
-    tar -xzf v8_10.9.194.10.tar.gz
-    rm -rf v8_10.9.194.10.tar.gz
+    if [ x"$ARCH" = "xx86_64" ]; then
+       wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10.tar.gz
+       tar -xzf v8_10.9.194.10.tar.gz
+       rm -rf v8_10.9.194.10.tar.gz
+    else
+       wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10-arm64.tar.gz
+       tar -xzf v8_10.9.194.10-arm64.tar.gz
+       rm -rf v8_10.9.194.10-arm64.tar.gz
+    fi
 }
 
 get_sources(){
@@ -343,7 +349,7 @@ build_oci_sdk(){
     fi
     . oci_sdk/bin/activate
     if [ "x$OS" = "xdeb" ]; then
-        if [ "x$OS_NAME" = "buster" -o "x$OS_NAME" = "focal" ]; then
+        if [ "x${DIST}" = "buster" -o "x${DIST}" = "focal" ]; then
             pip3 install -r requirements.txt
             pip3 install -e .
         else
@@ -361,6 +367,7 @@ build_oci_sdk(){
                 pip3 install -r requirements.txt
                 pip3 install -e .
                 pip3 install certifi || true
+                pip3 uninstall -y cffi
         fi
     fi
     rm -f /oci_sdk/.gitignore
@@ -375,9 +382,9 @@ get_system(){
         OS_NAME="el$RHEL"
         OS="rpm"
     else
-        ARCH=$(uname -m)
-        OS_NAME="$(lsb_release -sc)"
-        OS="deb"
+        export ARCH=$(uname -m)
+        export OS_NAME="$(lsb_release -sc)"
+        export OS="deb"
     fi
     return
 }
@@ -482,6 +489,7 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install oci
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y cffi
 }
 
 install_deps() {
@@ -499,12 +507,24 @@ install_deps() {
     if [ "x$OS" = "xrpm" ]; then
         RHEL=$(rpm --eval %rhel)
         ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
+        if [ $RHEL = 8 ]; then
+            if [ x"$ARCH" = "xx86_64" ]; then
+                sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+                sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+            else
+                dnf -y install yum
+                yum -y install yum-utils
+                yum-config-manager --enable ol8_codeready_builder
+            fi
+        fi
         if [ $RHEL = 9 ]; then
             dnf -y install yum
             yum -y install yum-utils
             yum-config-manager --enable ol9_codeready_builder
         else
-            add_percona_yum_repo
+            if [ x"$ARCH" = "xx86_64" ]; then
+                add_percona_yum_repo
+            fi
         fi
         if [ $RHEL = 8 -o $RHEL = 9 ]; then
             yum -y install dnf-plugins-core
@@ -513,7 +533,7 @@ install_deps() {
                 subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
             fi
             yum -y install epel-release
-            yum -y install git
+            yum -y install git wget
             yum -y install binutils gcc gcc-c++ tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize 
             yum -y install automake autoconf jemalloc jemalloc-devel
             yum -y install libaio-devel ncurses-devel numactl-devel readline-devel time
@@ -532,10 +552,14 @@ install_deps() {
             yum -y install patchelf
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install MySQL-python
-                yum -y install centos-release-stream
+                if [ x"$ARCH" = "xx86_64" ]; then
+                    yum -y install centos-release-stream
+                fi
                 yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
                 yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
-                yum -y remove centos-release-stream
+                if [ x"$ARCH" = "xx86_64" ]; then
+                    yum -y remove centos-release-stream
+                fi
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
                 # bug https://github.com/openzfs/zfs/issues/14386
                 pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/x86_64-redhat-linux/11/plugin/
@@ -635,13 +659,13 @@ install_deps() {
         apt-get update
         sleep 20
         apt-get -y install dirmngr || true
-        apt-get -y install lsb-release wget
+        apt-get -y install lsb-release wget curl
         wget --no-check-certificate https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
         percona-release enable tools testing
         export DEBIAN_FRONTEND="noninteractive"
         export DIST="$(lsb_release -sc)"
-        until sudo apt-get update; do
-            sleep 1
+        until apt-get update; do
+            sleep 10
             echo "waiting"
         done
         apt-get -y purge eatmydata || true
@@ -672,17 +696,17 @@ install_deps() {
         else
             apt-get -y install gcc g++
         fi
-        if [ "x$OS_NAME" = "xbullseye" ]; then
+        if [ "x${DIST}" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
 	fi
         
-        if [ "x$OS_NAME" = "xstretch" ]; then
+        if [ "x${DIST}" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
             apt-get update
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x$OS_NAME" = "xfocal" -o "x$OS_NAME" = "xbullseye" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x{DIST}" = "xbullseye" ]; then
             apt-get -y install python3-mysqldb
             #echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
             #echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
@@ -705,13 +729,13 @@ install_deps() {
         apt-get -y install python3-dev || true
         apt-get -y install libffi-dev || true
         PIP_UTIL="pip3"
-        if [ "x$OS_NAME" = "xxenial" ]; then
+        if [ "x${DIST}" = "xxenial" ]; then
             update-alternatives --install /usr/bin/python python /usr/bin/python3 1
             update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
             curl  https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
             python get-pip.py
         fi
-        if [ "x$OS_NAME" = "xstretch" ]; then
+        if [ "x${DIST}" = "xstretch" ]; then
             PIP_UTIL="pip"
             if [ ! -f /usr/bin/pip ]; then
                 ln -s /usr/bin/pip3 /usr/bin/pip
@@ -719,8 +743,8 @@ install_deps() {
             apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
             build_ssh
         fi
-        if [ "x$OS_NAME" != "xbuster" ]; then
-            if [ "x$OS_NAME" = "xxenial" ]; then
+        if [ "x${DIST}" != "xbuster" ]; then
+            if [ "x${DIST}" = "xxenial" ]; then
                export LC_ALL="en_US.UTF-8"
                export LC_CTYPE="en_US.UTF-8"
             fi
@@ -728,10 +752,10 @@ install_deps() {
         fi
         ${PIP_UTIL} install virtualenv || pip install virtualenv || pip3 install virtualenv || true
         build_oci_sdk
-        if [ "x$OS_NAME" = "xxenial" ]; then
+        if [ "x${DIST}" = "xxenial" ]; then
             get_cmake 3.6.3
         fi
-        if [ "x$OS_NAME" = "xbionic" -o "x$OS_NAME" = "xbuster" ]; then
+        if [ "x${DIST}" = "xbionic" -o "x${DIST}" = "xbuster" ]; then
             build_ssh
             get_cmake 3.16.3
         fi
@@ -799,12 +823,12 @@ build_ssh(){
     cd libgpg-error-1.45
     ./configure
     make
-    sudo make install
+    make install
     cd -
     cd libgcrypt-1.8.9
     ./configure --with-libgpg-error-prefix="/usr/local"
     make
-    sudo make install
+    make install
     cd -
     cd "${WORKDIR}"
     wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.3.orig.tar.xz
@@ -815,7 +839,7 @@ build_ssh(){
     cmake --version
     cmake  -Wno-error-implicit-function-declaration -DWITH_GCRYPT=OFF -DWITH_ZLIB=OFF -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
     make
-    sudo make install
+    make install
     cd ${WORKDIR}
 }
 
@@ -857,6 +881,7 @@ build_srpm(){
     mv mysql-shell.spec.in mysql-shell.spec
     #
     sed -i 's|mysql-shell@PRODUCT_SUFFIX@|percona-mysql-shell@PRODUCT_SUFFIX@|' mysql-shell.spec
+    sed -i 's|  mysql-shell|  percona-mysql-shell|' mysql-shell.spec
     sed -i 's|https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz|%{name}-@MYSH_VERSION@.tar.gz|' mysql-shell.spec
     sed -i 's|%{name}-@MYSH_VERSION@-src|%{name}-@MYSH_VERSION@|' mysql-shell.spec
     sed -i 's|%setup -q -n %{name}-|%setup -q -n mysql-shell-|' mysql-shell.spec
@@ -943,8 +968,8 @@ build_rpm(){
     get_v8
     get_protobuf
     if [ $RHEL = 9 ]; then
-        sudo yum -y remove gcc gcc-c++
-        sudo update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/usr/bin/gcc 200 --slave /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/usr/bin/g++ --slave /usr/bin/gcov gcov /opt/rh/gcc-toolset-12/root/usr/bin/gcov
+        yum -y remove gcc gcc-c++
+        update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/usr/bin/gcc 200 --slave /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/usr/bin/g++ --slave /usr/bin/gcov gcov /opt/rh/gcc-toolset-12/root/usr/bin/gcov
     fi
     get_database
     build_oci_sdk
@@ -1005,7 +1030,6 @@ build_source_deb(){
     mv ${TARFILE} ${NEWTAR}
     tar xzf ${NEWTAR}
     cd mysql-shell-${VERSION}
-    sed -i 's|3.8|3.6|' CMakeLists.txtx
     sed -i 's|Source: mysql-shell|Source: percona-mysql-shell|' debian/control
     sed -i 's|Package: mysql-shell|Package: percona-mysql-shell|' debian/control
     sed -i 's|cmake (>= 2.8.5), ||' debian/control
