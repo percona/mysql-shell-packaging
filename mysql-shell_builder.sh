@@ -317,6 +317,7 @@ get_sources(){
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
     sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
+    sed -i 's:quilt:native:g' packaging/debian/source/format
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
