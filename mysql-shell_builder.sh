@@ -1044,11 +1044,11 @@ build_source_deb(){
     cd ${WORKDIR}
     mkdir -p $WORKDIR/source_deb
     mkdir -p $CURDIR/source_deb
-    cp *.debian.tar.* $WORKDIR/source_deb
+    cp *.tar.* $WORKDIR/source_deb
     cp *_source.changes $WORKDIR/source_deb
     cp *.dsc $WORKDIR/source_deb
     cp *.orig.tar.gz $WORKDIR/source_deb
-    cp *.debian.tar.* $CURDIR/source_deb
+    cp *.tar.* $CURDIR/source_deb
     cp *_source.changes $CURDIR/source_deb
     cp *.dsc $CURDIR/source_deb
     cp *.orig.tar.gz $CURDIR/source_deb
@@ -1066,7 +1066,7 @@ build_deb(){
         exit 1
     fi
     build_ssh
-    for file in 'dsc' 'orig.tar.gz' 'changes' 'debian.tar.xz'
+    for file in 'dsc' 'orig.tar.gz' 'changes' 'tar.xz'
     do
         ls $WORKDIR */*
         get_deb_sources $file
