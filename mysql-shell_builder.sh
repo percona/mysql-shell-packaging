@@ -1044,14 +1044,14 @@ build_source_deb(){
     cd ${WORKDIR}
     mkdir -p $WORKDIR/source_deb
     mkdir -p $CURDIR/source_deb
-    cp *.tar.* $WORKDIR/source_deb
-    cp *_source.changes $WORKDIR/source_deb
-    cp *.dsc $WORKDIR/source_deb
-    cp *.orig.tar.gz $WORKDIR/source_deb
-    cp *.tar.* $CURDIR/source_deb
-    cp *_source.changes $CURDIR/source_deb
-    cp *.dsc $CURDIR/source_deb
-    cp *.orig.tar.gz $CURDIR/source_deb
+    cp percona*.tar.* $WORKDIR/source_deb
+    cp percona*_source.changes $WORKDIR/source_deb
+    cp percona*.dsc $WORKDIR/source_deb
+    cp percona*.orig.tar.gz $WORKDIR/source_deb
+    cp percona*.tar.* $CURDIR/source_deb
+    cp percona*_source.changes $CURDIR/source_deb
+    cp percona*.dsc $CURDIR/source_deb
+    cp percona*.orig.tar.gz $CURDIR/source_deb
 }
 
 build_deb(){
