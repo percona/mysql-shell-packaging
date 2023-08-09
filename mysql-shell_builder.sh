@@ -317,6 +317,7 @@ get_sources(){
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
     sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
+    sed -i 's:quilt:native:g' packaging/debian/source/format
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
@@ -1043,14 +1044,14 @@ build_source_deb(){
     cd ${WORKDIR}
     mkdir -p $WORKDIR/source_deb
     mkdir -p $CURDIR/source_deb
-    cp *.debian.tar.* $WORKDIR/source_deb
-    cp *_source.changes $WORKDIR/source_deb
-    cp *.dsc $WORKDIR/source_deb
-    cp *.orig.tar.gz $WORKDIR/source_deb
-    cp *.debian.tar.* $CURDIR/source_deb
-    cp *_source.changes $CURDIR/source_deb
-    cp *.dsc $CURDIR/source_deb
-    cp *.orig.tar.gz $CURDIR/source_deb
+    cp percona*.tar.* $WORKDIR/source_deb
+    cp percona*_source.changes $WORKDIR/source_deb
+    cp percona*.dsc $WORKDIR/source_deb
+    cp percona*.orig.tar.gz $WORKDIR/source_deb
+    cp percona*.tar.* $CURDIR/source_deb
+    cp percona*_source.changes $CURDIR/source_deb
+    cp percona*.dsc $CURDIR/source_deb
+    cp percona*.orig.tar.gz $CURDIR/source_deb
 }
 
 build_deb(){
@@ -1065,7 +1066,7 @@ build_deb(){
         exit 1
     fi
     build_ssh
-    for file in 'dsc' 'orig.tar.gz' 'changes' 'debian.tar.xz'
+    for file in 'dsc' 'orig.tar.gz' 'changes' 'tar.xz'
     do
         ls $WORKDIR */*
         get_deb_sources $file
