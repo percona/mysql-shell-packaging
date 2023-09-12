@@ -387,7 +387,7 @@ get_system(){
         export OS_NAME="$(lsb_release -sc)"
         export OS="deb"
     fi
-    GLIBC_VERSION=$(ldd --version | head -1 | awk {'print $4'})
+    GLIBC_VERSION=$(ldd --version | head -1 | awk {'print substr($4, 0, 4)'})
     return
 }
 
