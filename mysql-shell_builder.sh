@@ -387,6 +387,7 @@ get_system(){
         export OS_NAME="$(lsb_release -sc)"
         export OS="deb"
     fi
+    GLIBC_VERSION=$(ldd --version | head -1 | awk {'print substr($4, 0, 4)'})
     return
 }
 
@@ -563,7 +564,7 @@ install_deps() {
                 fi
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
                 # bug https://github.com/openzfs/zfs/issues/14386
-                pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/x86_64-redhat-linux/11/plugin/
+                pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/${ARCH}-redhat-linux/11/plugin/
                 ln -s annobin.so gcc-annobin.so
                 popd
             fi
@@ -571,7 +572,7 @@ install_deps() {
                 yum -y install krb5-devel
                 yum -y install zlib zlib-devel
                 yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
-                pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/x86_64-redhat-linux/12/plugin/
+                pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
                 ln -s annobin.so gcc-annobin.so
                 popd
             fi
@@ -1170,6 +1171,7 @@ build_tarball(){
             source /opt/rh/gcc-toolset-11/enable
         fi
         if [ $RHEL = 9 ]; then
+            source /opt/rh/gcc-toolset-12/enable
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
@@ -1245,13 +1247,13 @@ build_tarball(){
             -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so
     fi
     make -j4
-    mkdir ${NAME}-${VERSION}-${OS_NAME}
-    cp -r bin ${NAME}-${VERSION}-${OS_NAME}/
-    cp -r share ${NAME}-${VERSION}-${OS_NAME}/
+    mkdir ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
+    cp -r bin ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
+    cp -r share ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
     if [ -d lib ]; then
-        cp -r lib ${NAME}-${VERSION}-${OS_NAME}/
+        cp -r lib ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
     fi
-    tar -zcvf ${NAME}-${VERSION}-${OS_NAME}.tar.gz ${NAME}-${VERSION}-${OS_NAME}
+    tar -zcvf ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
     mkdir -p ${WORKDIR}/${DIRNAME}
     mkdir -p ${CURDIR}/${DIRNAME}
     cp *.tar.gz ${WORKDIR}/${DIRNAME}
