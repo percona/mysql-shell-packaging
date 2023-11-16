@@ -557,14 +557,14 @@ install_deps() {
                 if [ x"$ARCH" = "xx86_64" ]; then
                     yum -y install centos-release-stream
                 fi
-                yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
-                yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
+                yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils # gcc-toolset-10-annobin
+                yum -y install gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
                 if [ x"$ARCH" = "xx86_64" ]; then
                     yum -y remove centos-release-stream
                 fi
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
                 # bug https://github.com/openzfs/zfs/issues/14386
-                pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/${ARCH}-redhat-linux/11/plugin/
+                pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
                 ln -s annobin.so gcc-annobin.so
                 popd
             fi
