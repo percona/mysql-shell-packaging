@@ -210,9 +210,9 @@ get_database(){
         git submodule init
         git submodule update
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
-        if [ $RHEL = 8 ]; then
-            sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
-        fi
+    #    if [ $RHEL = 8 ]; then
+    #        sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
+    #    fi
     fi
     mkdir bld
     BOOST_VER="1.77.0"
@@ -228,7 +228,7 @@ get_database(){
             source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-11/enable
+            source /opt/rh/gcc-toolset-12/enable
         fi
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
@@ -990,7 +990,7 @@ build_rpm(){
         source /opt/rh/devtoolset-11/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 8 ]; then
-        source /opt/rh/gcc-toolset-11/enable
+        source /opt/rh/gcc-toolset-12/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
@@ -1168,7 +1168,7 @@ build_tarball(){
             source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-11/enable
+            source /opt/rh/gcc-toolset-12/enable
         fi
         if [ $RHEL = 9 ]; then
             source /opt/rh/gcc-toolset-12/enable
