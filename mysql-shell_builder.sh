@@ -752,6 +752,9 @@ install_deps() {
             fi
             ${PIP_UTIL} install --upgrade pip
         fi
+        if [ "x${DIST}" = "xbookworm" ]; then
+            apt-get install python3-virtualenv
+        fi
         ${PIP_UTIL} install virtualenv || pip install virtualenv || pip3 install virtualenv || true
         build_oci_sdk
         if [ "x${DIST}" = "xxenial" ]; then
