@@ -354,7 +354,7 @@ build_oci_sdk(){
     fi
     . oci_sdk/bin/activate
     if [ "x$OS" = "xdeb" ]; then
-        if [ "x${DIST}" = "buster" -o "x${DIST}" = "focal" ]; then
+        if [ "x${DIST}" = "buster" -o "x${DIST}" = "focal" -o "x${DIST}" = "bookworm" ]; then
             pip3 install -r requirements.txt
             pip3 install -e .
         else
@@ -439,7 +439,7 @@ build_python(){
 	    pversion="3.8.9"
         fi
     else # OS=deb
-        pversion="3.11.2"
+        pversion="3.11.6"
     fi
     arraypversion=(${pversion//\./ })
     wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
