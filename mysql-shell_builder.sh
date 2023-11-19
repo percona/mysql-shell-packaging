@@ -327,7 +327,7 @@ get_sources(){
         cd packaging/debian/
         cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python311"
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python311" -DPYTHON_INCLUDE_DIRS="/usr/local/python311/include/python3.11" -DPYTHON_LIBRARIES="/usr/local/python311/lib/libpython3.11.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python311" -DPYTHON_INCLUDE_DIRS="/usr/local/python311/include/python3.11" -DPYTHON_LIBRARIES="/usr/local/python311/lib/libpython3.11.so" -DPYTHON_DEPS=1 -DPYTHON_DEPS_PATH="lib/python3.11/site-packages" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     else
         cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     fi
