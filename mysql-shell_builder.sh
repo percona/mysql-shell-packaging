@@ -210,9 +210,9 @@ get_database(){
         git submodule init
         git submodule update
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
-    #    if [ $RHEL = 8 ]; then
-    #        sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
-    #    fi
+        if [[ $RHEL = 8 && ${SHELL_BRANCH:2:1} = 1 ]]; then
+            sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
+        fi
     fi
     mkdir bld
     BOOST_VER="1.77.0"
@@ -228,7 +228,11 @@ get_database(){
             source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-12/enable
+            if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                source /opt/rh/gcc-toolset-11/enable
+            else
+                source /opt/rh/gcc-toolset-12/enable
+            fi
         fi
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
@@ -557,14 +561,23 @@ install_deps() {
                 if [ x"$ARCH" = "xx86_64" ]; then
                     yum -y install centos-release-stream
                 fi
-                yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils # gcc-toolset-10-annobin
-                yum -y install gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
+                if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                    yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
+                    yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
+                else
+                    yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils # gcc-toolset-10-annobin
+                    yum -y install gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
+                fi
                 if [ x"$ARCH" = "xx86_64" ]; then
                     yum -y remove centos-release-stream
                 fi
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
                 # bug https://github.com/openzfs/zfs/issues/14386
-                pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
+                if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                    pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/${ARCH}-redhat-linux/11/plugin/
+                else
+                    pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
+                fi
                 ln -s annobin.so gcc-annobin.so
                 popd
             fi
@@ -753,7 +766,7 @@ install_deps() {
             ${PIP_UTIL} install --upgrade pip
         fi
         if [ "x${DIST}" = "xbookworm" ]; then
-            apt-get install python3-virtualenv
+            apt-get -y install python3-virtualenv
         fi
         ${PIP_UTIL} install virtualenv || pip install virtualenv || pip3 install virtualenv || true
         build_oci_sdk
@@ -1171,7 +1184,11 @@ build_tarball(){
             source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-12/enable
+            if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                source /opt/rh/gcc-toolset-11/enable
+            else
+                source /opt/rh/gcc-toolset-12/enable
+            fi
         fi
         if [ $RHEL = 9 ]; then
             source /opt/rh/gcc-toolset-12/enable
