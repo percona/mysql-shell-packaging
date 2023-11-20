@@ -439,7 +439,11 @@ build_python(){
 	    pversion="3.8.9"
         fi
     else # OS=deb
-        pversion="3.11.6"
+        if [ "x$OS_NAME" = "xbookworm" ]; then
+            pversion="3.12.0"
+        else
+            pversion="3.11.6"
+        fi
     fi
     arraypversion=(${pversion//\./ })
     wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
@@ -466,7 +470,11 @@ build_python(){
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         fi
     else
-       ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
+        if [ "x$OS_NAME" = "xbookworm" ]; then
+            ./configure --prefix=/usr/local/python312 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python312/lib
+        else
+            ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
+        fi
     fi
     make
     make altinstall
@@ -487,6 +495,7 @@ build_python(){
     #fi
     cd ../
     python3 -m site
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m site
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade pip
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install pyyaml
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install certifi
