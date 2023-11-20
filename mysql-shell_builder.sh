@@ -327,7 +327,7 @@ get_sources(){
         cd packaging/debian/
         cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python311"
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python311" -DPYTHON_INCLUDE_DIRS="/usr/local/python311/include/python3.11" -DPYTHON_LIBRARIES="/usr/local/python311/lib/libpython3.11.so" -DPYTHON_DEPS=1 -DPYTHON_DEPS_PATH="lib/python3.11/site-packages" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python311" -DPYTHON_INCLUDE_DIRS="/usr/local/python311/include/python3.11" -DPYTHON_LIBRARIES="/usr/local/python311/lib/libpython3.11.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     else
         cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     fi
@@ -439,11 +439,7 @@ build_python(){
 	    pversion="3.8.9"
         fi
     else # OS=deb
-        if [ "x$OS_NAME" = "xbookworm" ]; then
-            pversion="3.12.0"
-        else
-            pversion="3.11.6"
-        fi
+        pversion="3.11.3"
     fi
     arraypversion=(${pversion//\./ })
     wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
@@ -470,11 +466,7 @@ build_python(){
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         fi
     else
-        if [ "x$OS_NAME" = "xbookworm" ]; then
-            ./configure --prefix=/usr/local/python312 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python312/lib
-        else
-            ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
-        fi
+        ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
     fi
     make
     make altinstall
@@ -773,9 +765,6 @@ install_deps() {
                export LC_CTYPE="en_US.UTF-8"
             fi
             ${PIP_UTIL} install --upgrade pip
-        fi
-        if [ "x${DIST}" = "xbookworm" ]; then
-            apt-get -y install python3-virtualenv
         fi
         ${PIP_UTIL} install virtualenv || pip install virtualenv || pip3 install virtualenv || true
         build_oci_sdk
