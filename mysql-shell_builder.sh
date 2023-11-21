@@ -473,18 +473,19 @@ build_python(){
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
-    #if [ "x$OS" = "xdeb" ]; then
-    #    update-alternatives --remove-all python3
-    #    update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
-    #    update-alternatives --remove-all pip3
-    #    update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python3${arraypversion[1]}/bin/pip3 100
-    #    if [ "x$OS_NAME" = "xbionic" ]; then
-    #        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.6 -Es:' /usr/bin/lsb_release
-    #    fi
-    #    if [ "x$OS_NAME" = "xbuster" ]; then
-    #        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.7 -Es:' /usr/bin/lsb_release
-    #    fi
-    #fi
+    if [[ "x$OS" = "xdeb" && "x$OS_NAME" = "xbookworm" ]]; then
+        update-alternatives --remove-all python3
+        update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
+        update-alternatives --remove-all pip3
+        update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python3${arraypversion[1]}/bin/pip3 100
+        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.11 -Es:' /usr/bin/lsb_release
+        if [ "x$OS_NAME" = "xbionic" ]; then
+            sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.6 -Es:' /usr/bin/lsb_release
+        fi
+        if [ "x$OS_NAME" = "xbuster" ]; then
+            sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.7 -Es:' /usr/bin/lsb_release
+        fi
+    fi
     cd ../
     python3 -m site
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m site
