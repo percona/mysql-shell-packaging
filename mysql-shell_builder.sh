@@ -431,6 +431,7 @@ build_openssl(){
 }
 
 build_python(){
+    get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 8 ]; then
