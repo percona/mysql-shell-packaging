@@ -478,6 +478,7 @@ build_python(){
         update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
         update-alternatives --remove-all pip3
         update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python3${arraypversion[1]}/bin/pip3 100
+        cp /usr/local/python311/lib/libpython3.11.so.1.0 /usr/lib/x86_64-linux-gnu/
         sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.11 -Es:' /usr/bin/lsb_release
         if [ "x$OS_NAME" = "xbionic" ]; then
             sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.6 -Es:' /usr/bin/lsb_release
@@ -715,8 +716,10 @@ install_deps() {
         fi
         if [ "x${DIST}" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
-	fi
-        
+        fi
+        if [ "x${DIST}" = "xbookworm" ]; then
+            apt-get -y install python3-virtualenv
+        fi
         if [ "x${DIST}" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
             apt-get update
