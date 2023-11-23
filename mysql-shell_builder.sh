@@ -210,7 +210,7 @@ get_database(){
         git submodule init
         git submodule update
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
-        if [ $RHEL = 8 ]; then
+        if [[ $RHEL = 8 && ${SHELL_BRANCH:2:1} = 1 ]]; then
             sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
         fi
     fi
@@ -228,7 +228,11 @@ get_database(){
             source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-11/enable
+            if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                source /opt/rh/gcc-toolset-11/enable
+            else
+                source /opt/rh/gcc-toolset-12/enable
+            fi
         fi
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
@@ -350,7 +354,7 @@ build_oci_sdk(){
     fi
     . oci_sdk/bin/activate
     if [ "x$OS" = "xdeb" ]; then
-        if [ "x${DIST}" = "buster" -o "x${DIST}" = "focal" ]; then
+        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" ]; then
             pip3 install -r requirements.txt
             pip3 install -e .
         else
@@ -427,6 +431,7 @@ build_openssl(){
 }
 
 build_python(){
+    get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 8 ]; then
@@ -435,7 +440,7 @@ build_python(){
 	    pversion="3.8.9"
         fi
     else # OS=deb
-        pversion="3.11.2"
+        pversion="3.11.3"
     fi
     arraypversion=(${pversion//\./ })
     wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
@@ -462,27 +467,30 @@ build_python(){
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         fi
     else
-       ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
+        ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
     fi
     make
     make altinstall
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
-    #if [ "x$OS" = "xdeb" ]; then
-    #    update-alternatives --remove-all python3
-    #    update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
-    #    update-alternatives --remove-all pip3
-    #    update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python3${arraypversion[1]}/bin/pip3 100
-    #    if [ "x$OS_NAME" = "xbionic" ]; then
-    #        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.6 -Es:' /usr/bin/lsb_release
-    #    fi
-    #    if [ "x$OS_NAME" = "xbuster" ]; then
-    #        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.7 -Es:' /usr/bin/lsb_release
-    #    fi
-    #fi
+    if [[ "x$OS" = "xdeb" && "x$OS_NAME" = "xbookworm" ]]; then
+        update-alternatives --remove-all python3
+        update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
+        update-alternatives --remove-all pip3
+        update-alternatives --install /usr/bin/pip3 pip3 /usr/local/python3${arraypversion[1]}/bin/pip3 100
+        cp /usr/local/python311/lib/libpython3.11.so.1.0 /usr/lib/x86_64-linux-gnu/
+        sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.11 -Es:' /usr/bin/lsb_release
+        if [ "x$OS_NAME" = "xbionic" ]; then
+            sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.6 -Es:' /usr/bin/lsb_release
+        fi
+        if [ "x$OS_NAME" = "xbuster" ]; then
+            sed -i 's:/usr/bin/python3 -Es:/usr/bin/python3.7 -Es:' /usr/bin/lsb_release
+        fi
+    fi
     cd ../
     python3 -m site
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m site
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade pip
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install pyyaml
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install certifi
@@ -557,14 +565,23 @@ install_deps() {
                 if [ x"$ARCH" = "xx86_64" ]; then
                     yum -y install centos-release-stream
                 fi
-                yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
-                yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
+                if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                    yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
+                    yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
+                else
+                    yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils # gcc-toolset-10-annobin
+                    yum -y install gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
+                fi
                 if [ x"$ARCH" = "xx86_64" ]; then
                     yum -y remove centos-release-stream
                 fi
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
                 # bug https://github.com/openzfs/zfs/issues/14386
-                pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/${ARCH}-redhat-linux/11/plugin/
+                if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                    pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/${ARCH}-redhat-linux/11/plugin/
+                else
+                    pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
+                fi
                 ln -s annobin.so gcc-annobin.so
                 popd
             fi
@@ -700,15 +717,17 @@ install_deps() {
         fi
         if [ "x${DIST}" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
-	fi
-        
+        fi
+        if [ "x${DIST}" = "xbookworm" ]; then
+            apt-get -y install python3-virtualenv
+        fi
         if [ "x${DIST}" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
             apt-get update
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x${DIST}" = "xfocal" -o "x{DIST}" = "xbullseye" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x{DIST}" = "xbullseye" -o "x{DIST}" = "xbookworm" ]; then
             apt-get -y install python3-mysqldb
             #echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
             #echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
@@ -990,7 +1009,11 @@ build_rpm(){
         source /opt/rh/devtoolset-11/enable
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 8 ]; then
-        source /opt/rh/gcc-toolset-11/enable
+        if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+            source /opt/rh/gcc-toolset-11/enable
+        else
+            source /opt/rh/gcc-toolset-12/enable
+        fi
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
@@ -1168,7 +1191,11 @@ build_tarball(){
             source /opt/rh/devtoolset-11/enable
         fi
         if [ $RHEL = 8 ]; then
-            source /opt/rh/gcc-toolset-11/enable
+            if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                source /opt/rh/gcc-toolset-11/enable
+            else
+                source /opt/rh/gcc-toolset-12/enable
+            fi
         fi
         if [ $RHEL = 9 ]; then
             source /opt/rh/gcc-toolset-12/enable
