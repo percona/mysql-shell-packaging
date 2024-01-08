@@ -254,6 +254,7 @@ get_database(){
     cmake --build . --target authentication_fido_client
     cmake --build . --target authentication_ldap_sasl_client
     cmake --build . --target authentication_kerberos_client
+    cmake --build . --target authentication_webauthn_client
     cd $WORKDIR
     export PATH=$MY_PATH
     return
