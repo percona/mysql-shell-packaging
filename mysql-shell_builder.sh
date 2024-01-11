@@ -237,16 +237,16 @@ get_database(){
         if [ $RHEL != 6 ]; then
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=bundled
         else
             #uncomment once boost downloads are fixed
             #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=bundled
         fi
     else
         #uncomment once boost downloads are fixed
         #cmake .. -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled
-        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF
+        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=bundled
     fi
     cmake --build . --target authentication_oci_client
     cmake --build . --target mysqlclient
@@ -254,6 +254,7 @@ get_database(){
     cmake --build . --target authentication_fido_client
     cmake --build . --target authentication_ldap_sasl_client
     cmake --build . --target authentication_kerberos_client
+    cmake --build . --target authentication_webauthn_client
     cd $WORKDIR
     export PATH=$MY_PATH
     return
