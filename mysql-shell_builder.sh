@@ -711,8 +711,8 @@ install_deps() {
         apt-get -y install libudev-dev
         if [ x"${DIST}" = xfocal ]; then
             apt-get -y install gcc-10 g++-10
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 700 --slave /usr/bin/g++ g++ /usr/bin/g++-9
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 800 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 50 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
         else
             apt-get -y install gcc g++
         fi
@@ -745,6 +745,7 @@ install_deps() {
             apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
         fi
+        update-alternatives --display gcc
         apt-get -y install python python-dev
         apt-get -y install python27-dev
         apt-get -y install python3 python3-pip
