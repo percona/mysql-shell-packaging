@@ -216,8 +216,8 @@ get_database(){
     fi
     mkdir bld
     BOOST_VER="1.77.0"
-    #wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
-    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
+    wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
     tar -xzf boost_${BOOST_VER//[.]/_}.tar.gz
     mkdir -p $WORKDIR/boost
     mv boost_${BOOST_VER//[.]/_}/* $WORKDIR/boost/
