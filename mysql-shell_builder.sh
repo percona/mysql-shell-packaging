@@ -263,11 +263,13 @@ get_database(){
 get_v8(){
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
-       wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10.tar.gz
+       #wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10.tar.gz
+       wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/v8_10.9.194.10.tar.gz
        tar -xzf v8_10.9.194.10.tar.gz
        rm -rf v8_10.9.194.10.tar.gz
     else
-       wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10-arm64.tar.gz
+       #wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10-arm64.tar.gz
+       wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/v8_10.9.194.10-arm64.tar.gz
        tar -xzf v8_10.9.194.10-arm64.tar.gz
        rm -rf v8_10.9.194.10-arm64.tar.gz
     fi
@@ -534,7 +536,7 @@ install_deps() {
             yum-config-manager --enable ol9_codeready_builder
         else
             if [ x"$ARCH" = "xx86_64" ]; then
-                add_percona_yum_repo
+            #    add_percona_yum_repo
             fi
         fi
         if [ $RHEL = 8 -o $RHEL = 9 ]; then
