@@ -754,7 +754,6 @@ install_deps() {
             apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
         fi
-        update-alternatives --display gcc
         apt-get -y install python python-dev
         apt-get -y install python27-dev
         apt-get -y install python3 python3-pip
