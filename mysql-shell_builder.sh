@@ -534,10 +534,12 @@ install_deps() {
             dnf -y install yum
             yum -y install yum-utils
             yum-config-manager --enable ol9_codeready_builder
-        #else
-        #    if [ x"$ARCH" = "xx86_64" ]; then
-        #        add_percona_yum_repo
-        #    fi
+        else
+            if [ x"$ARCH" = "xx86_64" ]; then
+                # add_percona_yum_repo
+                wget -q --no-check-certificate https://jenkins.percona.com/downloads/rpcgen-1.4-1.fc29.x86_64.rpm
+                yum -y install ./rpcgen-1.4-1.fc29.x86_64.rpm
+            fi
         fi
         if [ $RHEL = 8 -o $RHEL = 9 ]; then
             yum -y install dnf-plugins-core
