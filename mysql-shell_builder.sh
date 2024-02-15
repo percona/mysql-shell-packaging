@@ -537,9 +537,9 @@ install_deps() {
         else
             if [ x"$ARCH" = "xx86_64" ]; then
                 # add_percona_yum_repo
-                wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/rpcgen-1.4-1.fc29.x86_64.rpm
-                wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/gperf-3.1-6.el8.x86_64.rpm
-                wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/MySQL-python-1.3.6-3.el8.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/rpcgen-1.4-1.fc29.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/gperf-3.1-6.el8.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/MySQL-python-1.3.6-3.el8.x86_64.rpm
                 yum -y install ./rpcgen-1.4-1.fc29.x86_64.rpm
                 yum -y install ./gperf-3.1-6.el8.x86_64.rpm
                 yum -y install ./MySQL-python-1.3.6-3.el8.x86_64.rpm
