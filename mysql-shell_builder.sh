@@ -135,7 +135,7 @@ get_antlr4-runtime(){
     git clone https://github.com/antlr/antlr4.git
     cd antlr4/runtime/Cpp
     git checkout v4.10.1
-    mkdir build && mkdir run && cd build
+    mkdir -p build && mkdir -p run && cd build
     cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
     make -j8
     mkdir -p /opt/antlr4
@@ -216,8 +216,8 @@ get_database(){
     fi
     mkdir bld
     BOOST_VER="1.77.0"
-    #wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
-    wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
+    wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
     tar -xzf boost_${BOOST_VER//[.]/_}.tar.gz
     mkdir -p $WORKDIR/boost
     mv boost_${BOOST_VER//[.]/_}/* $WORKDIR/boost/
@@ -263,11 +263,13 @@ get_database(){
 get_v8(){
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
-       wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10.tar.gz
+       #wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10.tar.gz
+       wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/v8_10.9.194.10.tar.gz
        tar -xzf v8_10.9.194.10.tar.gz
        rm -rf v8_10.9.194.10.tar.gz
     else
-       wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10-arm64.tar.gz
+       #wget -q --no-check-certificate https://jenkins.percona.com/downloads/v8_10.9.194.10-arm64.tar.gz
+       wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/v8_10.9.194.10-arm64.tar.gz
        tar -xzf v8_10.9.194.10-arm64.tar.gz
        rm -rf v8_10.9.194.10-arm64.tar.gz
     fi
@@ -534,7 +536,13 @@ install_deps() {
             yum-config-manager --enable ol9_codeready_builder
         else
             if [ x"$ARCH" = "xx86_64" ]; then
-                add_percona_yum_repo
+                # add_percona_yum_repo
+                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/rpcgen-1.4-1.fc29.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/gperf-3.1-6.el8.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/MySQL-python-1.3.6-3.el8.x86_64.rpm
+                yum -y install ./rpcgen-1.4-1.fc29.x86_64.rpm
+                yum -y install ./gperf-3.1-6.el8.x86_64.rpm
+                yum -y install ./MySQL-python-1.3.6-3.el8.x86_64.rpm
             fi
         fi
         if [ $RHEL = 8 -o $RHEL = 9 ]; then
@@ -558,7 +566,8 @@ install_deps() {
             yum -y install openldap-devel
             yum -y install cyrus-sasl-devel cyrus-sasl-scram
             yum -y install cmake
-            yum -y install libcmocka-devel libffi-devel
+            yum -y install libcmocka-devel
+            yum -y install libffi-devel
             yum -y install libuuid-devel pkgconf-pkg-config
             yum -y install patchelf
             if [ "x$RHEL" = "x8" ]; then
@@ -709,10 +718,10 @@ install_deps() {
         apt-get -y install uuid-dev
         apt-get -y install pkg-config
         apt-get -y install libudev-dev
-        if [ x"${DIST}" = xbionic ]; then
-            apt-get -y install gcc-8 g++-8
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+        if [ x"${DIST}" = xfocal ]; then
+            apt-get -y install gcc-10 g++-10
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 50 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
         else
             apt-get -y install gcc g++
         fi
