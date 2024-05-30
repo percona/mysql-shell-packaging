@@ -684,7 +684,7 @@ install_deps() {
             g++ --version
         fi
         yum -y install libudev-devel
-    else #OS: deb
+    else #========================================> OS: deb
         apt-get update
         sleep 20
         apt-get -y install dirmngr || true
@@ -730,6 +730,9 @@ install_deps() {
         fi
         if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" ]; then
             apt-get -y install python3-virtualenv
+        fi
+        if [ "x${DIST}" = "xnoble" ]; then
+            apt-get -y install libtirpc-dev
         fi
         if [ "x${DIST}" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
