@@ -357,7 +357,7 @@ build_oci_sdk(){
     fi
     . oci_sdk/bin/activate
     if [ "x$OS" = "xdeb" ]; then
-        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" ]; then
+        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" ]; then
             pip3 install -r requirements.txt
             pip3 install -e .
         else
@@ -477,7 +477,7 @@ build_python(){
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
-    if [[ "x$OS" = "xdeb" && "x$OS_NAME" = "xbookworm" ]]; then
+    if [[ "x$OS_NAME" = "xbookworm" -o "x$OS_NAME" = "xnoble" ]]; then
         update-alternatives --remove-all python3
         update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
         update-alternatives --remove-all pip3
@@ -728,7 +728,7 @@ install_deps() {
         if [ "x${DIST}" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
         fi
-        if [ "x${DIST}" = "xbookworm" ]; then
+        if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" ]; then
             apt-get -y install python3-virtualenv
         fi
         if [ "x${DIST}" = "xstretch" ]; then
@@ -737,7 +737,7 @@ install_deps() {
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x${DIST}" = "xfocal" -o "x{DIST}" = "xbullseye" -o "x{DIST}" = "xbookworm" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xbullseye" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" ]; then
             apt-get -y install python3-mysqldb
             #echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
             #echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
