@@ -477,7 +477,7 @@ build_python(){
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
-    if [[ "x$OS_NAME" = "xbookworm" -o "x$OS_NAME" = "xnoble" ]]; then
+    if [[ "x$OS_NAME" = "xbookworm" || "x$OS_NAME" = "xnoble" ]]; then
         update-alternatives --remove-all python3
         update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
         update-alternatives --remove-all pip3
