@@ -2,22 +2,36 @@
 #
 # https://github.com/jeroen/build-v8-static
 #
+# Use next command for install dependencies on ubuntu:focal
+# apt-get install -y curl python3 xz-utils git pkg-config libglib2.0-dev lsb-release
+# apt-get install gcc-9 g++-9
+# update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+# update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+#
+# Also the next package is required for arm64 support
+# apt-get install gcc-11-aarch64-linux-gnu g++-11-aarch64-linux-gnu
+# update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-11 60
+# update-alternatives --install /usr/bin/aarch64-linux-gnu-g++ aarch64-linux-gnu-g++ /usr/bin/aarch64-linux-gnu-g++-11 60
+#
 # Next gn flags are required for arm support
 # target_cpu="arm64" v8_target_cpu="arm64"
+# v8_enable_turbofan=false
+# v8_enable_webassembly=false
 
-tag="10.9.194.10"
+tag="12.0.267.8"
 if [ "$1" ]
   then
     tag=$1;
 fi
 echo "Build v8. Version $tag"
 
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools
+GIT_SSL_NO_VERIFY=true git clone https://chromium.googlesource.com/chromium/tools/depot_tools
 export PATH=$(pwd)/depot_tools:$PATH
-yes | fetch v8
+yes | fetch --force v8
 cd v8
 gclient sync -D --force --reset
-gclient sync --revision tags/$tag
+gclient sync -D --revision tags/$tag
+./build/install-build-deps.sh
 gn gen "out.gn/static" -vv --fail-on-unused-args --args='v8_monolithic=true
             v8_static_library=true
             v8_enable_sandbox=false
@@ -31,6 +45,7 @@ gn gen "out.gn/static" -vv --fail-on-unused-args --args='v8_monolithic=true
             v8_enable_i18n_support=false
             v8_use_external_startup_data=false
             use_custom_libcxx=false
+            v8_enable_maglev=false
             use_sysroot=false'
 ninja -C out.gn/static
 cd ..
