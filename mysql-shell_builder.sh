@@ -958,7 +958,7 @@ build_srpm(){
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
-    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
     sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
     #sed -i 's:%{?_smp_mflags}:VERBOSE=1:g' mysql-shell.spec # if a one thread is required 
