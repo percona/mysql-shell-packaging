@@ -959,7 +959,7 @@ build_srpm(){
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
     sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
-    sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so.24.4.0" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/ cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
+    sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so.24.4.0" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
     sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
     sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
@@ -1170,7 +1170,7 @@ build_deb(){
     else
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -fr debian/tmp/usr/local\n\trm -fr debian/tmp/usr/bin/mysqlshrec:' debian/rules
     fi
-    sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
+    sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\tcp /usr/local/lib64/libprotobuf* $(DESTDIR)/usr/lib/mysqlsh\n\tcp /usr/local/lib64/libabsl_* $(DESTDIR)/usr/lib/mysqlsh\n\tcp /usr/local/lib64/libgmock* $(DESTDIR)/usr/lib/mysqlsh\n\n\noverride_dh_auto_clean:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
     if [ "x$OS_NAME" = "xfocal" ]; then
         grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
