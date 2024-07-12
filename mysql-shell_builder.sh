@@ -1170,7 +1170,8 @@ build_deb(){
     else
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -fr debian/tmp/usr/local\n\trm -fr debian/tmp/usr/bin/mysqlshrec:' debian/rules
     fi
-    sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\tcp /usr/local/lib64/libprotobuf* $(DESTDIR)/usr/lib/mysqlsh\n\tcp /usr/local/lib64/libabsl_* $(DESTDIR)/usr/lib/mysqlsh\n\tcp /usr/local/lib64/libgmock* $(DESTDIR)/usr/lib/mysqlsh\n\n\noverride_dh_auto_clean:|' debian/rules
+    sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
+    sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
     if [ "x$OS_NAME" = "xfocal" ]; then
         grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
