@@ -172,7 +172,6 @@ get_protobuf(){
     fi
     cmake . -DCMAKE_CXX_STANDARD=14 -Dprotobuf_BUILD_SHARED_LIBS=ON -DABSL_PROPAGATE_CXX_STD=ON
     cmake --build .
-    ctest --verbose
     cmake --install .
     export PATH=$MY_PATH
     protoc --version
@@ -257,8 +256,9 @@ get_database(){
     cmake --build . --target authentication_oci_client
     cmake --build . --target mysqlclient
     cmake --build . --target mysqlxclient
-    cmake --build . --target authentication_fido_client
-    #cmake --build . --target authentication_fido_client
+    if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+        cmake --build . --target authentication_fido_client
+    fi
     cmake --build . --target authentication_ldap_sasl_client
     cmake --build . --target authentication_kerberos_client
     cmake --build . --target authentication_webauthn_client
@@ -334,7 +334,13 @@ get_sources(){
     #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
-    sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
+    if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+        sed -i 's:set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:#set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:g' cmake/exeutils.cmake
+        sed -i '/create a dependency/i \if(NOT TARGET \"${COPY_TARGET}\")' cmake/exeutils.cmake
+        sed -i '/APPEND COPIED_BINARIES/a endif()' cmake/exeutils.cmake
+    else
+        sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
+    fi
     sed -i 's:quilt:native:g' packaging/debian/source/format
     
     if [ "x$OS" = "xdeb" ]; then
@@ -534,7 +540,7 @@ install_deps() {
         if [ $RHEL = 8 -o $RHEL = 7 ]; then
             if [ x"$ARCH" = "xx86_64" ]; then
                 sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-                sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+                sed -i 's|#\s*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
             else
                 dnf -y install yum
                 yum -y install yum-utils
@@ -548,9 +554,9 @@ install_deps() {
         else
             if [ x"$ARCH" = "xx86_64" -a x"$RHEL" = "x8" ]; then
                 # add_percona_yum_repo
-                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/rpcgen-1.4-1.fc29.x86_64.rpm
-                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/gperf-3.1-6.el8.x86_64.rpm
-                curl -O https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/MySQL-python-1.3.6-3.el8.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/packaging/rpcgen-1.4-1.fc29.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/packaging/gperf-3.1-6.el8.x86_64.rpm
+                curl -O https://downloads.percona.com/downloads/packaging/MySQL-python-1.3.6-3.el8.x86_64.rpm
                 yum -y install ./rpcgen-1.4-1.fc29.x86_64.rpm
                 yum -y install ./gperf-3.1-6.el8.x86_64.rpm
                 yum -y install ./MySQL-python-1.3.6-3.el8.x86_64.rpm
@@ -738,13 +744,9 @@ install_deps() {
         apt-get -y install pkg-config
         apt-get -y install libudev-dev
         apt-get -y install libbsd-dev
-        if [ x"${DIST}" = xfocal ]; then
+        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" ]; then
             apt-get -y install gcc-10 g++-10
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 50 --slave /usr/bin/g++ g++ /usr/bin/g++-9
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
-        elif [ x"${DIST}" = xnoble ]; then
-            apt-get -y install gcc-12 g++-12
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
         else
             apt-get -y install gcc g++
         fi
@@ -752,10 +754,7 @@ install_deps() {
             apt-get -y install libssh2-1-dev
         fi
         if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" ]; then
-            apt-get -y install python3-virtualenv
-        fi
-        if [ "x${DIST}" = "xnoble" ]; then
-            apt-get -y install libtirpc-dev
+            apt-get -y install python3-virtualenv libtirpc-dev
         fi
         if [ "x${DIST}" = "xstretch" ]; then
             echo "deb http://ftp.us.debian.org/debian/ jessie main contrib non-free" >> /etc/apt/sources.list
@@ -763,19 +762,8 @@ install_deps() {
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xbullseye" -o "x${DIST}" = "xbookworm" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" ]; then
             apt-get -y install python3-mysqldb
-            #echo "deb http://archive.ubuntu.com/ubuntu bionic main restricted" >> /etc/apt/sources.list
-            #echo "deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted" >> /etc/apt/sources.list
-            #echo "deb http://archive.ubuntu.com/ubuntu bionic universe" >> /etc/apt/sources.list
-            #apt-get update
-            #apt-get -y install gcc-4.8 g++-4.8
-            #sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic main restricted;;' /etc/apt/sources.list
-            #sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic-updates main restricted;;' /etc/apt/sources.list
-            #sed -i 's;deb http://archive.ubuntu.com/ubuntu bionic universe;;' /etc/apt/sources.list
-            #apt-get update
-            apt install -y gcc-10 g++-10 cpp-10
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
         else
             apt-get -y install python-mysqldb
             apt-get -y install gcc-4.8 g++-4.8
@@ -959,7 +947,7 @@ build_srpm(){
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
     sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
-    sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so.24.4.0" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
+    sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
     sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
     sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
@@ -1130,7 +1118,6 @@ build_deb(){
     build_ssh
     for file in 'dsc' 'orig.tar.gz' 'changes' 'tar.xz'
     do
-        ls $WORKDIR */*
         get_deb_sources $file
     done
     cd $WORKDIR
@@ -1164,7 +1151,12 @@ build_deb(){
     echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
     echo "usr/lib/mysqlsh/libgmock.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
-    sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=\"/usr/local/include\" -DPROTOBUF_LIBRARIES=\"/usr/local/lib/libprotobuf.a\" -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    if [ "x${DEBIAN_VERSION}" = "xjammy" -o "x${DEBIAN_VERSION}" = "xnoble" ]; then
+        sed -i "s:VERBOSE=1:-DCMAKE_SHARED_LINKER_FLAGS="" -DCMAKE_MODULE_LINKER_FLAGS="" -DCMAKE_CXX_FLAGS="" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
+        sed -i "s/override_dh_auto_clean:/override_dh_auto_clean:\n\noverride_dh_auto_build:\n\tmake -j1/" debian/rules
+    else
+        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+    fi
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
     else
@@ -1173,9 +1165,7 @@ build_deb(){
     sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
     sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
-    if [ "x$OS_NAME" = "xfocal" ]; then
-        grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
-    fi
+    grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
     dpkg-buildpackage -rfakeroot -uc -us -b
     cd ${WORKDIR}
