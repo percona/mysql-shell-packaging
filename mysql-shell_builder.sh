@@ -335,11 +335,11 @@ get_sources(){
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+        sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
+    else
         sed -i 's:set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:#set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:g' cmake/exeutils.cmake
         sed -i '/create a dependency/i \if(NOT TARGET \"${COPY_TARGET}\")' cmake/exeutils.cmake
         sed -i '/APPEND COPIED_BINARIES/a endif()' cmake/exeutils.cmake
-    else
-        sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
     fi
     sed -i 's:quilt:native:g' packaging/debian/source/format
     
