@@ -339,7 +339,8 @@ get_sources(){
     else
         sed -i 's:set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:#set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:g' cmake/exeutils.cmake
         #sed -i '/create a dependency/i \if(NOT TARGET \"${COPY_TARGET}\")' cmake/exeutils.cmake
-        #sed -i '/APPEND COPIED_BINARIES/a endif()' cmake/exeutils.cmake
+        sed -i '0,/add_custom_target/{s/add_custom_target/if(NOT TARGET \"${COPY_TARGET}\")\nadd_custom_target/}' cmake/exeutils.cmake
+        sed -i '/APPEND COPIED_BINARIES/a endif()' cmake/exeutils.cmake
     fi
     sed -i 's:quilt:native:g' packaging/debian/source/format
     
