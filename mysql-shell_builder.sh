@@ -274,7 +274,11 @@ get_v8(){
         tar -xzf v8_12.0.267.8.tar.gz
         rm -rf v8_12.0.267.8.tar.gz
     else
-        if [ $RHEL = 8 ]; then
+        if [ $RHEL = "8" ]; then
+            wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/v8_10.9.194.10-arm64.tar.gz
+            tar -xzf v8_10.9.194.10-arm64.tar.gz
+            rm -rf v8_10.9.194.10-arm64.tar.gz
+        elif [ "x${DIST}" = "xfocal" ]; then
             wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/v8_10.9.194.10-arm64.tar.gz
             tar -xzf v8_10.9.194.10-arm64.tar.gz
             rm -rf v8_10.9.194.10-arm64.tar.gz
