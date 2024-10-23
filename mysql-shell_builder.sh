@@ -280,7 +280,7 @@ get_v8(){
             wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/v8_10.9.194.10-arm64.tar.gz
             tar -xzf v8_10.9.194.10-arm64.tar.gz
             rm -rf v8_10.9.194.10-arm64.tar.gz
-        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xbuster" ]; then
             wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/v8_10.9.194.10-arm64.tar.gz
             tar -xzf v8_10.9.194.10-arm64.tar.gz
             rm -rf v8_10.9.194.10-arm64.tar.gz
