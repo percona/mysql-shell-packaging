@@ -226,7 +226,8 @@ get_database(){
     fi
     mkdir bld
     BOOST_VER="1.77.0"
-    wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    #wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
+    wget https://downloads.percona.com/downloads/packaging/boost/boost_${BOOST_VER//[.]/_}.tar.gz
     #wget --no-check-certificate https://jenkins.percona.com/downloads/boost/boost_${BOOST_VER//[.]/_}.tar.gz
     tar -xzf boost_${BOOST_VER//[.]/_}.tar.gz
     mkdir -p $WORKDIR/boost
@@ -268,7 +269,7 @@ get_database(){
 }
 
 get_v8(){
-    RHEL="$(rpm --eval %rhel)"
+    RHEL="$(rpm --eval "%{?rhel}%{?amzn}")"
     DIST="$(lsb_release -sc)"
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
@@ -302,7 +303,7 @@ get_sources(){
     fi
     build_ssh
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL != 8 ]; then
+        if [ "$RHEL" != 8 ]; then
             source /opt/rh/devtoolset-7/enable
             source /opt/rh/rh-python38/enable
         fi
@@ -408,10 +409,14 @@ build_oci_sdk(){
 }
 
 get_system(){
-    if [ -f /etc/redhat-release ]; then
-        RHEL=$(rpm --eval %rhel)
+    if [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
+        RHEL=$(rpm --eval "%{?rhel}%{?amzn}")
         ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
-        OS_NAME="el$RHEL"
+        if [ -f /etc/amazon-linux-release ]; then
+            export OS_NAME="amzn$RHEL"
+        else
+            export OS_NAME="el$RHEL"
+        fi
         OS="rpm"
     else
         export ARCH=$(uname -m)
@@ -474,7 +479,7 @@ build_python(){
     tar xzf Python-${pversion}.tgz
     cd Python-${pversion}
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL -le 7 -o $RHEL = 9 ]; then
+        if [ $RHEL -le 7 -o $RHEL = 9 -o $RHEL = 2023 ]; then
             sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
         fi
         if [ $RHEL -le 8 ]; then
@@ -488,7 +493,7 @@ build_python(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
             ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
-        elif [ $RHEL = 9 ]; then
+        elif [ $RHEL = 9 -o $RHEL = 2023 ]; then
             ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
         else # el8
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
@@ -542,7 +547,7 @@ install_deps() {
     fi
     CURPLACE=$(pwd)
     if [ "x$OS" = "xrpm" ]; then
-        RHEL=$(rpm --eval %rhel)
+        RHEL=$(rpm --eval "%{?rhel}%{?amzn}")
         ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
         if [ $RHEL = 8 -o $RHEL = 7 ]; then
             if [ x"$ARCH" = "xx86_64" ]; then
@@ -556,7 +561,6 @@ install_deps() {
         fi
         if [ $RHEL = 9 ]; then
             dnf -y install yum
-            yum -y install yum-utils
             yum-config-manager --enable ol9_codeready_builder
         else
             if [ x"$ARCH" = "xx86_64" -a x"$RHEL" = "x8" ]; then
@@ -569,13 +573,16 @@ install_deps() {
                 yum -y install ./MySQL-python-1.3.6-3.el8.x86_64.rpm
             fi
         fi
-        if [ $RHEL = 8 -o $RHEL = 9 ]; then
+        if [ $RHEL = 8 -o $RHEL = 9 -o $RHEL = 2023 ]; then
             yum -y install dnf-plugins-core
             if [ "x$RHEL" = "x8" ]; then
                 yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
                 subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
             fi
-            yum -y install epel-release
+            if [ "x$RHEL" != "x2023" ]; then
+                yum -y install epel-release
+            fi
+            yum -y install yum-utils
             yum -y install git wget
             yum -y install binutils tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize
             yum -y install automake autoconf jemalloc jemalloc-devel
@@ -632,6 +639,11 @@ install_deps() {
                 pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
                 ln -s annobin.so gcc-annobin.so
                 popd
+            fi
+            if [ "x$RHEL" = "x2023" ]; then
+                yum -y install krb5-devel
+                yum -y install zlib zlib-devel
+                yum -y install gcc-c++ annobin-annocheck annobin-plugin-gcc
             fi
             build_python
             #build_oci_sdk
@@ -908,7 +920,7 @@ build_srpm(){
         exit 1
     fi
     build_ssh
-    if [ $RHEL != 8 ]; then
+    if [ $RHEL != 8 ] && [ $RHEL != 2023 ]; then
         source /opt/rh/devtoolset-7/enable
         source /opt/rh/rh-python38/enable
     fi
@@ -948,7 +960,11 @@ build_srpm(){
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
     sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
-    sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
+    if [ "$RHEL" != 2023 ]; then
+        sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
+    else
+        sed -i "s|BuildRequires:  python-devel|%if 0%{?amzn} >= 2023\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
+    fi
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
@@ -956,7 +972,11 @@ build_srpm(){
     sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
     sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
     sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
-    sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
+    if [ "$RHEL" != 2023 ]; then
+        sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
+    else
+        sed -i "s|%files|%if %{?amzn} >= 2023\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
+    fi
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
     #sed -i 's:%{?_smp_mflags}:VERBOSE=1:g' mysql-shell.spec # if a one thread is required 
 
@@ -1005,7 +1025,7 @@ build_rpm(){
     rm -fr rpmbuild
     mkdir -vp rpmbuild/{SOURCES,SPECS,BUILD,SRPMS,RPMS}
     cp $SRC_RPM rpmbuild/SRPMS/
-    RHEL=$(rpm --eval %rhel)
+    RHEL=$(rpm --eval "%{?rhel}%{?amzn}")
     ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
     #
     echo "RHEL=${RHEL}" >> mysql-shell.properties
@@ -1015,7 +1035,7 @@ build_rpm(){
     mkdir -vp rpmbuild/{SOURCES,SPECS,BUILD,SRPMS,RPMS}
     #
     mv *.src.rpm rpmbuild/SRPMS
-    if [ $RHEL != 8 ]; then
+    if [ $RHEL != 8 ] && [ $RHEL != 2023 ]; then
         source /opt/rh/devtoolset-7/enable
         source /opt/rh/rh-python38/enable
     fi
@@ -1047,9 +1067,9 @@ build_rpm(){
         else
             source /opt/rh/gcc-toolset-12/enable
         fi
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .${OS_NAME}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .${OS_NAME}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "v8_includedir $WORKDIR/v8/include" --define "v8_libdir ${WORKDIR}/v8/out.gn/static/obj" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -1197,7 +1217,7 @@ build_tarball(){
     #
     if [ -f /etc/redhat-release ]; then
         export OS_RELEASE="centos$(lsb_release -sr | awk -F'.' '{print $1}')"
-        RHEL=$(rpm --eval %rhel)
+        RHEL=$(rpm --eval "%{?rhel}%{?amzn}")
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
             source /opt/rh/rh-python36/enable
@@ -1225,7 +1245,7 @@ build_tarball(){
     DIRNAME="tarball"
     mkdir bld
     cd bld
-    if [ -f /etc/redhat-release ]; then
+    if [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
         if [ $RHEL = 7 ]; then
             source /opt/rh/devtoolset-11/enable
         fi
