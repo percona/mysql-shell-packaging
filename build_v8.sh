@@ -9,6 +9,7 @@
 # update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
 #
 # Also the next package is required for arm64 support
+# apt-get install file
 # apt-get install gcc-11-aarch64-linux-gnu g++-11-aarch64-linux-gnu
 # update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-11 60
 # update-alternatives --install /usr/bin/aarch64-linux-gnu-g++ aarch64-linux-gnu-g++ /usr/bin/aarch64-linux-gnu-g++-11 60
