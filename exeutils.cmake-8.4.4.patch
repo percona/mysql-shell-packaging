@@ -1,0 +1,26 @@
+From f22538b388835520b8484f831baaf544204bf493 Mon Sep 17 00:00:00 2001
+From: Vadim Yalovets <vadim.yalovets@percona.com>
+Date: Wed, 5 Feb 2025 10:13:11 +0200
+Subject: [PATCH] 8.4.4
+
+---
+ cmake/exeutils.cmake | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/exeutils.cmake b/cmake/exeutils.cmake
+index 23085decc..6548e87bf 100644
+--- a/cmake/exeutils.cmake
++++ b/cmake/exeutils.cmake
+@@ -191,7 +191,8 @@ function(install_bundled_binaries)
+   foreach(SOURCE_BINARY ${ARG_BINARIES})
+     get_filename_component(SOURCE_BINARY_NAME "${SOURCE_BINARY}" NAME)
+     set(COPIED_BINARY "${DESTINATION_BINARY_DIR}/${SOURCE_BINARY_NAME}")
+-    set(COPY_TARGET "copy_${SOURCE_BINARY_NAME}")
++    string(REGEX REPLACE "[^a-zA-Z0-9_]" "_" SAFE_SOURCE_BINARY_NAME "${SOURCE_BINARY_NAME}")
++    set(COPY_TARGET "copy_${SAFE_SOURCE_BINARY_NAME}")
+     SET(COPY_COMMAND "")
+ 
+     if(NOT IS_SYMLINK "${SOURCE_BINARY}")
+-- 
+2.39.5 (Apple Git-154)
+
