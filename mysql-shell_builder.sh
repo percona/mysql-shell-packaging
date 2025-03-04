@@ -285,11 +285,12 @@ get_GraalVM(){
     git clone --recursive https://github.com/oracle/graal.git
     cd graal
     git checkout tags/jdk-23.0.1
-    echo "export GRAALVM_HOME=/opt/graalvm" >> ~/.bashrc
-    echo "export PATH=$GRAALVM_HOME/bin:$PATH" >> ~/.bashrc
-    echo "export JAVA_HOME=$GRAALVM_HOME" >> ~/.bashrc
-    echo "export GRAALJDK_ROOT=${WORKDIR}/graal" >> ~/.bashrc
-    source ~/.bashrc
+    cd ..
+    export GRAALVM_HOME=/opt/graalvm
+    export PATH="/opt/graalvm/bin:$PATH"
+    export JAVA_HOME=/opt/graalvm
+    export GRAALJDK_ROOT="${WORKDIR}/graal"
+    set | grep GRAAL
     java -version
     if [ "x$OS" = "xrpm" ]; then
         yum install maven zlib-devel
