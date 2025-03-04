@@ -285,10 +285,10 @@ get_GraalVM(){
     git clone --recursive https://github.com/oracle/graal.git
     cd graal
     git checkout tags/jdk-23.0.1
-    echo 'export GRAALVM_HOME=/opt/graalvm' >> ~/.bashrc
-    echo 'export PATH=$GRAALVM_HOME/bin:$PATH' >> ~/.bashrc
-    echo 'export JAVA_HOME=$GRAALVM_HOME' >> ~/.bashrc
-    echo 'export GRAALJDK_ROOT=${WORKDIR}/graal' >> ~/.bashrc
+    echo "export GRAALVM_HOME=/opt/graalvm" >> ~/.bashrc
+    echo "export PATH=$GRAALVM_HOME/bin:$PATH" >> ~/.bashrc
+    echo "export JAVA_HOME=$GRAALVM_HOME" >> ~/.bashrc
+    echo "export GRAALJDK_ROOT=${WORKDIR}/graal" >> ~/.bashrc
     source ~/.bashrc
     java -version
     if [ "x$OS" = "xrpm" ]; then
@@ -297,6 +297,7 @@ get_GraalVM(){
         apt install -y maven zlib1g-dev
     fi
     mvn --version
+    cd ${WORKDIR}
     git clone https://github.com/mysql/mysql-shell
     cd mysql-shell/ext/polyglot/
     mvn -X package
