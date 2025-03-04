@@ -267,6 +267,44 @@ get_database(){
     return
 }
 
+get_GraalVM(){
+    if [ -f /etc/redhat-release ]; then
+        RHEL=$(rpm --eval %rhel)
+        ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
+        OS_NAME="el$RHEL"
+        OS="rpm"
+    else
+        export ARCH=$(uname -m)
+        export OS_NAME="$(lsb_release -sc)"
+        export OS="deb"
+    fi
+    cd ${WORKDIR}
+    wget https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
+    tar -zxvf graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
+    mv graalvm-community-openjdk-23.0.1+11.1/ /opt/graalvm
+    git clone --recursive https://github.com/oracle/graal.git
+    cd graal
+    git checkout tags/jdk-23.0.1
+    echo 'export GRAALVM_HOME=/opt/graalvm' >> ~/.bashrc
+    echo 'export PATH=$GRAALVM_HOME/bin:$PATH' >> ~/.bashrc
+    echo 'export JAVA_HOME=$GRAALVM_HOME' >> ~/.bashrc
+    echo 'export GRAALJDK_ROOT=${WORKDIR}/graal' >> ~/.bashrc
+    source ~/.bashrc
+    java -version
+    if [ "x$OS" = "xrpm" ]; then
+        yum install maven zlib-devel
+    else
+        apt install -y maven zlib1g-dev
+    fi
+    mvn --version
+    git clone https://github.com/mysql/mysql-shell
+    cd mysql-shell/ext/polyglot/
+    mvn -X package
+    mkdir ${WORKDIR}/polyglot-nativeapi-native-library
+    cp -r polyglot-nativeapi-native-library/target/* ${WORKDIR}/polyglot-nativeapi-native-library
+    ls -la ${WORKDIR}/polyglot-nativeapi-native-library
+}
+
 get_v8(){
     RHEL="$(rpm --eval %rhel)"
     DIST="$(lsb_release -sc)"
@@ -781,6 +819,10 @@ install_deps() {
         apt-get -y install python3-dev || true
         apt-get -y install libffi-dev || true
         PIP_UTIL="pip3"
+        if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" ]; then
+            apt-get -y install pipx
+            PIP_UTIL="pipx"
+        fi
         if [ "x${DIST}" = "xxenial" ]; then
             update-alternatives --install /usr/bin/python python /usr/bin/python3 1
             update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
@@ -795,11 +837,7 @@ install_deps() {
             apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
             build_ssh
         fi
-        if [ "x${DIST}" != "xbuster" ]; then
-            if [ "x${DIST}" = "xxenial" ]; then
-               export LC_ALL="en_US.UTF-8"
-               export LC_CTYPE="en_US.UTF-8"
-            fi
+        if [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xbullseye"]; then
             ${PIP_UTIL} install --upgrade pip
         fi
         ${PIP_UTIL} install virtualenv || pip install virtualenv || pip3 install virtualenv || true
@@ -1019,7 +1057,8 @@ build_rpm(){
         source /opt/rh/devtoolset-7/enable
         source /opt/rh/rh-python38/enable
     fi
-    get_v8
+    #get_v8
+    get_GraalVM
     get_protobuf
     if [ $RHEL = 9 ]; then
         yum -y remove gcc gcc-c++
@@ -1145,7 +1184,8 @@ build_deb(){
     dpkg-source -x ${DSC}
     get_protobuf
     get_database
-    get_v8
+    #get_v8
+    get_GraalVM
     build_oci_sdk
     cd ${WORKDIR}/percona-mysql-shell-$SHELL_BRANCH-1
     sed -i 's:3.8:3.6:' CMakeLists.txt
@@ -1159,10 +1199,10 @@ build_deb(){
     echo "usr/lib/mysqlsh/libgmock.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
     if [ "x${DEBIAN_VERSION}" = "xjammy" -o "x${DEBIAN_VERSION}" = "xnoble" ]; then
-        sed -i "s:VERBOSE=1:-DCMAKE_SHARED_LINKER_FLAGS="" -DCMAKE_MODULE_LINKER_FLAGS="" -DCMAKE_CXX_FLAGS="" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
+        sed -i "s:VERBOSE=1:-DCMAKE_SHARED_LINKER_FLAGS="" -DCMAKE_MODULE_LINKER_FLAGS="" -DCMAKE_CXX_FLAGS="" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DBUNDLED_POLYGLOT_DIR=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
         sed -i "s/override_dh_auto_clean:/override_dh_auto_clean:\n\noverride_dh_auto_build:\n\tmake -j1/" debian/rules
     else
-        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DV8_INCLUDE_DIR=${WORKDIR}/v8/include -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DBUNDLED_POLYGLOT_DIR=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     fi
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
@@ -1241,8 +1281,7 @@ build_tarball(){
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
-                -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
+                -DBUNDLED_POLYGLOT_DIR=${WORKDIR}/polyglot-nativeapi-native-library \
                 -DHAVE_PYTHON=1 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
@@ -1259,8 +1298,7 @@ build_tarball(){
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
-                -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
+                -DBUNDLED_POLYGLOT_DIR=${WORKDIR}/polyglot-nativeapi-native-library \
                 -DHAVE_PYTHON=1 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
@@ -1277,8 +1315,7 @@ build_tarball(){
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
-                -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-                -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
+                -DBUNDLED_POLYGLOT_DIR=${WORKDIR}/polyglot-nativeapi-native-library \
                 -DHAVE_PYTHON=2 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
@@ -1297,8 +1334,7 @@ build_tarball(){
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
             -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
             -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
-            -DV8_INCLUDE_DIR=${WORKDIR}/v8/include \
-            -DV8_LIB_DIR=${WORKDIR}/v8/out.gn/static/obj \
+            -DBUNDLED_POLYGLOT_DIR=${WORKDIR}/polyglot-nativeapi-native-library \
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_PROTOBUF=system \
