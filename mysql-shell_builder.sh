@@ -278,6 +278,11 @@ get_GraalVM(){
         export OS_NAME="$(lsb_release -sc)"
         export OS="deb"
     fi
+    if [ "x$OS" = "xrpm" ]; then
+        yum install maven zlib-devel
+    else
+        apt install -y maven zlib1g-dev
+    fi
     cd ${WORKDIR}
     wget https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
     tar -zxvf graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
@@ -292,16 +297,17 @@ get_GraalVM(){
     export GRAALJDK_ROOT="${WORKDIR}/graal"
     set | grep GRAAL
     java -version
-    if [ "x$OS" = "xrpm" ]; then
-        yum install maven zlib-devel
-    else
-        apt install -y maven zlib1g-dev
-    fi
     mvn --version
     cd ${WORKDIR}
     git clone https://github.com/mysql/mysql-shell
     cd mysql-shell/ext/polyglot/
-    mvn -X package
+    #if [ ! -z "$SHELL_BRANCH" ]
+    #then
+    #    git reset --hard
+    #    git clean -xdf
+    #    git checkout tags/"$SHELL_BRANCH"
+    #fi
+    mvn package
     mkdir ${WORKDIR}/polyglot-nativeapi-native-library
     cp -r polyglot-nativeapi-native-library/target/* ${WORKDIR}/polyglot-nativeapi-native-library
     ls -la ${WORKDIR}/polyglot-nativeapi-native-library
