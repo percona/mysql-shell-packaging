@@ -291,12 +291,16 @@ get_GraalVM(){
         tar -xzf polyglot-nativeapi-native-library_23.0.1_x86_64_ol8.tar.gz
         rm -rf polyglot-nativeapi-native-library_23.0.1_x86_64_ol8.tar.gz
     else
-        wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
-        tar -xzf polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
-        rm -rf polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
+        if [ $RHEL = "8" ]; then
+            wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library_23.0.1_aarch64_el9.tar.gz
+            tar -xzf polyglot-nativeapi-native-library_23.0.1_aarch64_el9.tar.gz
+            rm -rf polyglot-nativeapi-native-library_23.0.1_aarch64_el9.tar.gz
+        else
+            wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
+            tar -xzf polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
+            rm -rf polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
+        fi
     fi
-
-    ls -la ${WORKDIR}/polyglot-nativeapi-native-library
 
     mkdir /tmp/polyglot-nativeapi-native-library
     cp -r polyglot-nativeapi-native-library/* /tmp/polyglot-nativeapi-native-library
