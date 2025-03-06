@@ -285,8 +285,13 @@ get_GraalVM(){
         apt install -y maven zlib1g-dev
     fi
     cd ${WORKDIR}
-    wget https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
-    tar -zxvf graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
+    if [ x"$ARCH" = "xx86_64" ]; then
+        wget https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
+        tar -zxvf graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
+    else
+        wget https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_linux-aarch64_bin.tar.gz
+        tar -zxvf graalvm-community-jdk-23.0.1_linux-aarch64_bin.tar.gz
+    fi
     mv graalvm-community-openjdk-23.0.1+11.1/ /opt/graalvm
     git clone --recursive https://github.com/oracle/graal.git
     cd graal
