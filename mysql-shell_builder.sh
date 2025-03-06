@@ -280,7 +280,7 @@ get_GraalVM(){
         export OS="deb"
     fi
     if [ "x$OS" = "xrpm" ]; then
-        yum install maven zlib-devel
+        yum install -y zlib-devel
     else
         apt install -y zlib1g-dev
     fi
