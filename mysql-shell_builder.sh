@@ -282,43 +282,24 @@ get_GraalVM(){
     if [ "x$OS" = "xrpm" ]; then
         yum install maven zlib-devel
     else
-        apt install -y maven zlib1g-dev
+        apt install -y zlib1g-dev
     fi
+
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
-        wget https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
-        tar -zxvf graalvm-community-jdk-23.0.1_linux-x64_bin.tar.gz
+        wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library_23.0.1_x86_64_ol8.tar.gz
+        tar -xzf polyglot-nativeapi-native-library_23.0.1_x86_64_ol8.tar.gz
+        rm -rf polyglot-nativeapi-native-library_23.0.1_x86_64_ol8.tar.gz
     else
-        wget https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_linux-aarch64_bin.tar.gz
-        tar -zxvf graalvm-community-jdk-23.0.1_linux-aarch64_bin.tar.gz
+        wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
+        tar -xzf polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
+        rm -rf polyglot-nativeapi-native-library_23.0.1_aarch64_noble.tar.gz
     fi
-    mv graalvm-community-openjdk-23.0.1+11.1/ /opt/graalvm
-    git clone --recursive https://github.com/oracle/graal.git
-    cd graal
-    git checkout tags/jdk-23.0.1
-    cd ..
-    export GRAALVM_HOME=/opt/graalvm
-    export PATH="/opt/graalvm/bin:$PATH"
-    export JAVA_HOME=/opt/graalvm
-    export GRAALJDK_ROOT="${WORKDIR}/graal"
-    set | grep GRAAL
-    java -version
-    mvn --version
-    cd ${WORKDIR}
-    git clone https://github.com/mysql/mysql-shell
-    cd mysql-shell/ext/polyglot/
-    #if [ ! -z "$SHELL_BRANCH" ]
-    #then
-    #    git reset --hard
-    #    git clean -xdf
-    #    git checkout tags/"$SHELL_BRANCH"
-    #fi
-    mvn package
-    mkdir ${WORKDIR}/polyglot-nativeapi-native-library
-    mkdir /tmp/polyglot-nativeapi-native-library
-    cp -r polyglot-nativeapi-native-library/target/* ${WORKDIR}/polyglot-nativeapi-native-library
-    cp -r polyglot-nativeapi-native-library/target/* /tmp/polyglot-nativeapi-native-library
+
     ls -la ${WORKDIR}/polyglot-nativeapi-native-library
+
+    mkdir /tmp/polyglot-nativeapi-native-library
+    cp -r polyglot-nativeapi-native-library/* /tmp/polyglot-nativeapi-native-library
 }
 
 get_v8(){
