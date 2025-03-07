@@ -24,9 +24,9 @@ else
 fi
 
 if [ "x$OS" = "xrpm" ]; then
-    yum install -y maven zlib-devel gcc wget git
+    yum install -y maven zlib-devel gcc wget git tar
 else
-    apt install -y maven zlib1g-dev gcc wget
+    apt install -y maven zlib1g-dev gcc wget tar
 fi
 
 if [ x"$ARCH" = "xx86_64" ]; then
