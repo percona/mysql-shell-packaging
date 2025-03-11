@@ -262,7 +262,9 @@ get_database(){
     fi
     cmake --build . --target authentication_ldap_sasl_client
     cmake --build . --target authentication_kerberos_client
-    cmake --build . --target authentication_webauthn_client
+    if [ ${SHELL_BRANCH:2:1} != 0 ]; then
+        cmake --build . --target authentication_webauthn_client
+    fi
     cd $WORKDIR
     export PATH=$MY_PATH
     return
