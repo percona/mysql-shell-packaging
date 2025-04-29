@@ -24,9 +24,9 @@ else
 fi
 
 if [ "x$OS" = "xrpm" ]; then
-    yum install -y maven zlib-devel gcc wget git tar
+    yum install -y maven zlib-devel gcc wget git tar patch
 else
-    apt install -y maven zlib1g-dev gcc wget tar
+    apt install -y maven zlib1g-dev gcc wget tar patch
 fi
 
 if [ x"$ARCH" = "xx86_64" ]; then
@@ -65,4 +65,4 @@ mvn package
 mkdir /tmp/polyglot-nativeapi-native-library
 cp -r polyglot-nativeapi-native-library/target/* /tmp/polyglot-nativeapi-native-library
 
-tar -zcvf polyglot-nativeapi-native-library_${tag}_${ARCH}_${OS_NAME}.tar.gz -C /tmp polyglot-nativeapi-native-library && echo "Done."
+tar -zcvf polyglot-nativeapi-native-library-lje_${tag}_${ARCH}_${OS_NAME}.tar.gz -C /tmp polyglot-nativeapi-native-library && echo "Done."
