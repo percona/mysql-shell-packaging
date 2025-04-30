@@ -290,8 +290,8 @@ get_GraalVM(){
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
         wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
-        tar -xzf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_ol8.tar.gz
-        rm -rf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_ol8.tar.gz
+        tar -xzf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
+        rm -rf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
     else
 #        if [ $RHEL = "8" ]; then
             wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
@@ -1002,6 +1002,7 @@ build_srpm(){
     #sed -i 's:%{?_smp_mflags}:VERBOSE=1:g' mysql-shell.spec # if a one thread is required 
 
     mv mysql-shell.spec percona-mysql-shell.spec
+    cat percona-mysql-shell.spec
     cd ${WORKDIR}
     #
     mv -fv ${TARFILE} ${WORKDIR}/rpmbuild/SOURCES
