@@ -381,6 +381,12 @@ get_sources(){
     #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
+    if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+        curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.0.42.patch
+    else
+        curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.4.4.patch
+    fi
+    patch -d cmake < exeutils.patch
     if [ ${SHELL_BRANCH:2:1} = 0 && ${SHELL_BRANCH:4:2} < 40 ]; then
         sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
     else
