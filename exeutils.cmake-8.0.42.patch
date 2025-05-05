@@ -1,0 +1,14 @@
+diff --git a/cmake/exeutils.cmake b/cmake/exeutils.cmake
+index 453c8646a..4c03adf89 100644
+--- a/cmake/exeutils.cmake
++++ b/cmake/exeutils.cmake
+@@ -171,7 +171,8 @@ function(install_bundled_binaries)
+   foreach(SOURCE_BINARY ${ARG_BINARIES})
+     get_filename_component(SOURCE_BINARY_NAME "${SOURCE_BINARY}" NAME)
+     set(COPIED_BINARY "${DESTINATION_BINARY_DIR}/${SOURCE_BINARY_NAME}")
+-    set(COPY_TARGET "copy_${SOURCE_BINARY_NAME}")
++    string(REGEX REPLACE "[^a-zA-Z0-9_]" "_" SAFE_SOURCE_BINARY_NAME "${SOURCE_BINARY_NAME}")
++    set(COPY_TARGET "copy_${SAFE_SOURCE_BINARY_NAME}")
+     SET(RPATH_COMMAND "")
+ 
+     if(NOT IS_SYMLINK "${SOURCE_BINARY}")
