@@ -289,12 +289,12 @@ get_GraalVM(){
 
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
-        wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_x86_64_ol8.tar.gz
-        tar -xzf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_ol8.tar.gz
-        rm -rf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_ol8.tar.gz
+        wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
+        tar -xzf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
+        rm -rf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
     else
 #        if [ $RHEL = "8" ]; then
-            wget -q --no-check-certificate https://downloads.percona.com/downloads/TESTING/issue-CUSTO83/polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz 
+            wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
             tar -xzf polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
             rm -rf polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
 #        else
@@ -381,6 +381,12 @@ get_sources(){
     #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
+    if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+        curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.0.42.patch
+    else
+        curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.4.4.patch
+    fi
+    patch -d cmake < exeutils.patch
     if [ ${SHELL_BRANCH:2:1} = 0 && ${SHELL_BRANCH:4:2} < 40 ]; then
         sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
     else
@@ -1002,6 +1008,7 @@ build_srpm(){
     #sed -i 's:%{?_smp_mflags}:VERBOSE=1:g' mysql-shell.spec # if a one thread is required 
 
     mv mysql-shell.spec percona-mysql-shell.spec
+    cat percona-mysql-shell.spec
     cd ${WORKDIR}
     #
     mv -fv ${TARFILE} ${WORKDIR}/rpmbuild/SOURCES
@@ -1079,19 +1086,19 @@ build_rpm(){
     cd ${WORKDIR}
     #
     if [ ${RHEL} = 6 ]; then
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "bundled_polyglot $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
         source /opt/rh/devtoolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "bundled_polyglot $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 8 ]; then
         if [ ${SHELL_BRANCH:2:1} = 1 ]; then
             source /opt/rh/gcc-toolset-11/enable
         else
             source /opt/rh/gcc-toolset-12/enable
         fi
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "bundled_polyglot $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "bundled_polyglot $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then

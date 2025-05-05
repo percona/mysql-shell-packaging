@@ -65,4 +65,4 @@ mvn package
 mkdir /tmp/polyglot-nativeapi-native-library
 cp -r polyglot-nativeapi-native-library/target/* /tmp/polyglot-nativeapi-native-library
 
-tar -zcvf polyglot-nativeapi-native-library-lje_${tag}_${ARCH}_${OS_NAME}.tar.gz -C /tmp polyglot-nativeapi-native-library && echo "Done."
+tar -zcvf polyglot-nativeapi-native-library-lje_${tag}_${ARCH}_${OS_NAME}.tar.gz -C /tmp polyglot-nativeapi-native-library && echo "Done. Tarvall is located in ${PWD}"
