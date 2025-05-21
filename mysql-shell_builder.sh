@@ -508,11 +508,11 @@ build_python(){
     get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL -le 8 ]; then
+        #if [ $RHEL -le 8 ]; then
             pversion="3.9.15"
-        else
-	    pversion="3.8.9"
-        fi
+        #else
+	#    pversion="3.8.9"
+        #fi
     else # OS=deb
         pversion="3.12.3"
     fi
@@ -535,8 +535,8 @@ build_python(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
             ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
-        elif [ $RHEL = 9 ]; then
-            ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
+        #elif [ $RHEL = 9 ]; then
+        #    ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
         else # el8
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         fi
