@@ -637,6 +637,7 @@ install_deps() {
             yum -y install libffi-devel
             yum -y install libuuid-devel pkgconf-pkg-config
             yum -y install patchelf
+            yum -y install libudev-devel
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install MySQL-python
                 if [ x"$ARCH" = "xx86_64" ]; then
@@ -691,7 +692,6 @@ install_deps() {
             yum -y install libcmocka-devel
             yum -y install libuuid-devel pkgconf-pkg-config
             yum -y install patchelf
-            yum -y install libudev-devel
             until yum -y install centos-release-scl; do
                 echo "waiting"
                 sleep 1
