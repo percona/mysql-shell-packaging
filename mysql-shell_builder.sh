@@ -508,11 +508,7 @@ build_python(){
     get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL -le 8 ]; then
-            pversion="3.9.22"
-        else
-	    pversion="3.8.20"
-        fi
+        pversion="3.9.22"
     else # OS=deb
         pversion="3.12.10"
     fi
@@ -521,22 +517,22 @@ build_python(){
     tar xzf Python-${pversion}.tgz
     cd Python-${pversion}
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL -le 7 -o $RHEL = 9 ]; then
+        if [ $RHEL -le 7 ]; then
             sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
         fi
-        if [ $RHEL -le 8 ]; then
+        if [ $RHEL -le 8 -o $RHEL = 9 ]; then
             sed -i '210 s/^##*//' Modules/Setup
             sed -i '214,217 s/^##*//' Modules/Setup
-        else
-            sed -i '206 s/^##*//' Modules/Setup
-            sed -i '210,213 s/^##*//' Modules/Setup
+        #else
+        #    sed -i '206 s/^##*//' Modules/Setup
+        #    sed -i '210,213 s/^##*//' Modules/Setup
         fi
     fi
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
             ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         elif [ $RHEL = 9 ]; then
-            ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
+            ./configure --prefix=/usr/local/python39 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         else # el8
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         fi
