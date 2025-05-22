@@ -691,6 +691,7 @@ install_deps() {
             yum -y install libcmocka-devel
             yum -y install libuuid-devel pkgconf-pkg-config
             yum -y install patchelf
+            yum -y install libudev-devel
             until yum -y install centos-release-scl; do
                 echo "waiting"
                 sleep 1
@@ -758,7 +759,6 @@ install_deps() {
             source /opt/rh/devtoolset-7/enable
             g++ --version
         fi
-        yum -y install libudev-devel
     else #========================================> OS: deb
         apt-get update
         sleep 20
