@@ -565,11 +565,13 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install pyyaml
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install certifi
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install virtualenv
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade virtualenv
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install cryptography
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install oci
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y cffi
+    find /usr/local/python3${arraypversion[1]}/include/python3.${arraypversion[1]}/ -type f -name "*.whl" -exec rm -v {} \
 }
 
 install_deps() {
