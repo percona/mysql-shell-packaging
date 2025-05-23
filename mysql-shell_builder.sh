@@ -1299,9 +1299,9 @@ build_tarball(){
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python38 \
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python38/include/python3.8 \
-                -DPYTHON_LIBRARIES=/usr/local/python38/lib/libpython3.8.so \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
+                -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library
         elif [ $RHEL = 7 -o $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
