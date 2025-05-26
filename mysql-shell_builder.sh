@@ -508,35 +508,31 @@ build_python(){
     get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL -le 8 ]; then
-            pversion="3.9.15"
-        else
-	    pversion="3.8.9"
-        fi
+        pversion="3.9.22"
     else # OS=deb
-        pversion="3.12.3"
+        pversion="3.12.10"
     fi
     arraypversion=(${pversion//\./ })
     wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
     tar xzf Python-${pversion}.tgz
     cd Python-${pversion}
     if [ "x$OS" = "xrpm" ]; then
-        if [ $RHEL -le 7 -o $RHEL = 9 ]; then
+        if [ $RHEL -le 7 ]; then
             sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
         fi
-        if [ $RHEL -le 8 ]; then
+        if [ $RHEL -le 8 -o $RHEL = 9 ]; then
             sed -i '210 s/^##*//' Modules/Setup
             sed -i '214,217 s/^##*//' Modules/Setup
-        else
-            sed -i '206 s/^##*//' Modules/Setup
-            sed -i '210,213 s/^##*//' Modules/Setup
+        #else
+        #    sed -i '206 s/^##*//' Modules/Setup
+        #    sed -i '210,213 s/^##*//' Modules/Setup
         fi
     fi
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
             ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         elif [ $RHEL = 9 ]; then
-            ./configure --prefix=/usr/local/python38 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python38/lib
+            ./configure --prefix=/usr/local/python39 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         else # el8
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         fi
@@ -569,11 +565,13 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install pyyaml
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install certifi
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install virtualenv
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade virtualenv
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install cryptography
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install oci
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y cffi
+    find / -type f -name "*.whl" -exec rm -vf {} \;
 }
 
 install_deps() {
@@ -641,6 +639,7 @@ install_deps() {
             yum -y install libffi-devel
             yum -y install libuuid-devel pkgconf-pkg-config
             yum -y install patchelf
+            yum -y install libudev-devel
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install MySQL-python
                 if [ x"$ARCH" = "xx86_64" ]; then
@@ -762,7 +761,6 @@ install_deps() {
             source /opt/rh/devtoolset-7/enable
             g++ --version
         fi
-        yum -y install libudev-devel
     else #========================================> OS: deb
         apt-get update
         sleep 20
@@ -1098,7 +1096,7 @@ build_rpm(){
         fi
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python38/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -1303,9 +1301,9 @@ build_tarball(){
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python38 \
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python38/include/python3.8 \
-                -DPYTHON_LIBRARIES=/usr/local/python38/lib/libpython3.8.so \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
+                -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library
         elif [ $RHEL = 7 -o $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
