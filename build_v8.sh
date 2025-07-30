@@ -3,8 +3,9 @@
 # https://github.com/jeroen/build-v8-static
 #
 # Use next command for install dependencies on ubuntu:focal
-# apt-get install -y curl python3 xz-utils git pkg-config libglib2.0-dev lsb-release
-# apt-get install gcc-9 g++-9
+# apt-get install -y file curl python3 xz-utils git pkg-config libglib2.0-dev lsb-release
+# apt-get install -y apt-utils sudo
+# apt-get install -y gcc-9 g++-9
 # update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
 # update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
 #
@@ -34,12 +35,12 @@ gclient sync -D --force --reset
 gclient sync -D --revision tags/$tag
 ./build/install-build-deps.sh
 gn gen "out.gn/static" -vv --fail-on-unused-args --args='v8_monolithic=true
+            use_rtti=true
             v8_static_library=true
             v8_enable_sandbox=false
             v8_enable_pointer_compression=false
             is_clang=false
             is_asan=false
-            use_gold=false
             is_debug=false
             is_official_build=false
             treat_warnings_as_errors=false
