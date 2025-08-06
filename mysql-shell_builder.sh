@@ -520,7 +520,7 @@ build_python(){
         if [ $RHEL -le 7 ]; then
             sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
         fi
-        if [ $RHEL -le 8 -o $RHEL = 9 ]; then
+        if [ $RHEL -le 8 -o $RHEL = 9 -o $RHEL = 10 ]; then
             sed -i '210 s/^##*//' Modules/Setup
             sed -i '214,217 s/^##*//' Modules/Setup
         #else
@@ -531,7 +531,7 @@ build_python(){
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
             ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
-        elif [ $RHEL = 9 ]; then
+        elif [ $RHEL = 9 -o $RHEL = 10 ]; then
             ./configure --prefix=/usr/local/python39 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
         else # el8
             ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
@@ -599,10 +599,10 @@ install_deps() {
                 yum-config-manager --enable ol8_codeready_builder
             fi
         fi
-        if [ $RHEL = 9 ]; then
+        if [ $RHEL = 9 -o $RHEL = 10 ]; then
             dnf -y install yum
             yum -y install yum-utils
-            yum-config-manager --enable ol9_codeready_builder
+            yum-config-manager --enable ol${RHEL}_codeready_builder
         else
             if [ x"$ARCH" = "xx86_64" -a x"$RHEL" = "x8" ]; then
                 # add_percona_yum_repo
@@ -614,11 +614,11 @@ install_deps() {
                 yum -y install ./MySQL-python-1.3.6-3.el8.x86_64.rpm
             fi
         fi
-        if [ $RHEL = 8 -o $RHEL = 9 ]; then
+        if [ $RHEL = 8 -o $RHEL = 9 -o $RHEL = 10 ]; then
             yum -y install dnf-plugins-core
             if [ "x$RHEL" = "x8" ]; then
                 yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
-                subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+                subscription-manager repos --enable codeready-builder-for-rhel-${RHEL}-x86_64-rpms
             fi
             yum -y install epel-release
             yum -y install git wget
@@ -671,7 +671,7 @@ install_deps() {
                 ln -s annobin.so gcc-annobin.so
                 popd
             fi
-            if [ "x$RHEL" = "x9" ]; then
+            if [ $RHEL = 9 -o $RHEL = 10 ]; then
                 yum -y install krb5-devel
                 yum -y install zlib zlib-devel
                 yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
@@ -1068,7 +1068,7 @@ build_rpm(){
     #get_v8
     get_GraalVM
     get_protobuf
-    if [ $RHEL = 9 ]; then
+    if [ $RHEL = 9 -o $RHEL = 10 ]; then
         yum -y remove gcc gcc-c++
         update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/usr/bin/gcc 200 --slave /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/usr/bin/g++ --slave /usr/bin/gcov gcov /opt/rh/gcc-toolset-12/root/usr/bin/gcov
     fi
@@ -1286,7 +1286,7 @@ build_tarball(){
                 source /opt/rh/gcc-toolset-12/enable
             fi
         fi
-        if [ $RHEL = 9 ]; then
+        if [ $RHEL = 9 -o $RHEL = 10 ]; then
             source /opt/rh/gcc-toolset-12/enable
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
