@@ -381,20 +381,20 @@ get_sources(){
     #sed -i 's:STRING_PREPEND:#STRING_PREPEND:g' CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/debian/CMakeLists.txt
     #sed -i 's:3.8:3.6:g' packaging/rpm/mysql-shell.spec.in
-    if [ ${SHELL_BRANCH:2:1} = 0 ]; then
-        curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.0.42.patch
-    else
-        curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.4.4.patch
-    fi
-    patch -d cmake < exeutils.patch
-    if [ ${SHELL_BRANCH:2:1} = 0 && ${SHELL_BRANCH:4:2} < 40 ]; then
-        sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
-    else
+    #if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+    #    curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.0.42.patch
+    #else
+    #    curl -L -o exeutils.patch https://github.com/percona/mysql-shell-packaging/raw/refs/heads/main/exeutils.cmake-8.4.4.patch
+    #fi
+    #patch -d cmake < exeutils.patch
+    #if [ ${SHELL_BRANCH:2:1} = 0 && ${SHELL_BRANCH:4:2} < 40 ]; then
+    #    sed -i 's:execute_patchelf:# execute_patchelf:g' cmake/exeutils.cmake
+    #else
         sed -i 's:set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:#set(\"\${ARG_OUT_COMMAND}\" ${PATCHELF_EXECUTABLE}:g' cmake/exeutils.cmake
         sed -i '/create a dependency, so that files/i \if(NOT TARGET \"${COPY_TARGET}\")' cmake/exeutils.cmake
         #sed -i '0,/add_custom_target/{s/add_custom_target/if(NOT TARGET \"${COPY_TARGET}\")\nadd_custom_target/}' cmake/exeutils.cmake
         sed -i '/APPEND COPIED_BINARIES/a endif()' cmake/exeutils.cmake
-    fi
+    #fi
     sed -i 's:quilt:native:g' packaging/debian/source/format
     
     if [ "x$OS" = "xdeb" ]; then
@@ -647,7 +647,7 @@ install_deps() {
                     sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
                     sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
                 fi
-                if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                if [ ${SHELL_BRANCH:2:1} = 0 ]; then
                     yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
                     yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
                     update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-11/root/bin/gcc 80
@@ -663,7 +663,7 @@ install_deps() {
                 fi
                 dnf install -y libarchive #required for build_ssh if cmake =< 8.20.2-4
                 # bug https://github.com/openzfs/zfs/issues/14386
-                if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+                if [ ${SHELL_BRANCH:2:1} = 0 ]; then
                     pushd /opt/rh/gcc-toolset-11/root/usr/lib/gcc/${ARCH}-redhat-linux/11/plugin/
                 else
                     pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
