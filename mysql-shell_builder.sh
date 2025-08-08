@@ -119,7 +119,7 @@ get_cmake(){
         apt -y purge cmake*
         apt-get -y install build-essential
     fi
-    wget --no-check-certificate http://www.cmake.org/files/v${CMAKE_VERSION::(${#CMAKE_VERSION}-2)}/cmake-${CMAKE_VERSION}.tar.gz
+    wget -nv --no-check-certificate http://www.cmake.org/files/v${CMAKE_VERSION::(${#CMAKE_VERSION}-2)}/cmake-${CMAKE_VERSION}.tar.gz
     tar xf cmake-${CMAKE_VERSION}.tar.gz
     cd cmake-${CMAKE_VERSION}
     ./configure
@@ -179,10 +179,10 @@ get_protobuf(){
     cd ..
     ARCH=$(uname -m)
     if [ "x$ARCH" = "xaarch64" ]; then
-        wget https://github.com/protocolbuffers/protobuf/releases/download/v24.4/protoc-24.4-linux-aarch_64.zip
+        wget -nv https://github.com/protocolbuffers/protobuf/releases/download/v24.4/protoc-24.4-linux-aarch_64.zip
         unzip protoc-24.4-linux-aarch_64.zip
     else
-        wget https://github.com/protocolbuffers/protobuf/releases/download/v24.4/protoc-24.4-linux-x86_64.zip
+        wget -nv https://github.com/protocolbuffers/protobuf/releases/download/v24.4/protoc-24.4-linux-x86_64.zip
         unzip protoc-24.4-linux-x86_64.zip
     fi
     cp bin/protoc /usr/local/bin
@@ -228,7 +228,7 @@ get_database(){
     mkdir bld
     BOOST_VER="1.77.0"
     #wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER//[.]/_}.tar.gz
-    wget --no-check-certificate https://downloads.percona.com/downloads/packaging/boost/boost_${BOOST_VER//[.]/_}.tar.gz
+    wget -nv --no-check-certificate https://downloads.percona.com/downloads/packaging/boost/boost_${BOOST_VER//[.]/_}.tar.gz
     tar -xzf boost_${BOOST_VER//[.]/_}.tar.gz
     mkdir -p $WORKDIR/boost
     mv boost_${BOOST_VER//[.]/_}/* $WORKDIR/boost/
@@ -238,17 +238,24 @@ get_database(){
         if [ $RHEL = 7 ]; then
             source /opt/rh/devtoolset-11/enable
         fi
-        if [ $RHEL = 8 ]; then
-            if [ ${SHELL_BRANCH:2:1} = 1 ]; then
-                source /opt/rh/gcc-toolset-11/enable
-            else
-                source /opt/rh/gcc-toolset-12/enable
-            fi
-        fi
+        #if [ $RHEL = 8 ]; then
+        #    if [ ${SHELL_BRANCH:2:1} = 1 ]; then
+        #        source /opt/rh/gcc-toolset-11/enable
+        #    else
+        #        source /opt/rh/gcc-toolset-12/enable
+        #    fi
+        #fi
         if [ $RHEL != 6 ]; then
             cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1
         else
+        if [ $RHEL = 6 ]; then
             cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
+        else
+           if [ $RHEL = 10 ]; then
+               cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/gcc -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1
+           else
+               cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1
+           fi
         fi
     else
         cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1
@@ -289,12 +296,12 @@ get_GraalVM(){
 
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
-        wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
+        wget -nv -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
         tar -xzf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
         rm -rf polyglot-nativeapi-native-library-lje_23.0.1_x86_64_el8.tar.gz
     else
 #        if [ $RHEL = "8" ]; then
-            wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
+            wget -nv -q --no-check-certificate https://downloads.percona.com/downloads/packaging/polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
             tar -xzf polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
             rm -rf polyglot-nativeapi-native-library-lje_23.0.1_aarch64_el8.tar.gz
 #        else
@@ -313,7 +320,7 @@ get_v8(){
     DIST="$(lsb_release -sc)"
     cd ${WORKDIR}
     if [ x"$ARCH" = "xx86_64" ]; then
-        wget -q --no-check-certificate https://downloads.percona.com/downloads/packaging/v8_12.0.267.8.tar.gz
+        wget -nv -q --no-check-certificate https://downloads.percona.com/downloads/packaging/v8_12.0.267.8.tar.gz
         tar -xzf v8_12.0.267.8.tar.gz
         rm -rf v8_12.0.267.8.tar.gz
     else
@@ -482,11 +489,11 @@ build_openssl(){
         fullversion="openssl-${version}"
     fi
     if [ ${version:0:1} -eq "3" ]; then
-        wget --no-check-certificate https://github.com/openssl/openssl/releases/download/${fullversion}/${fullversion}.tar.gz
+        wget -nv --no-check-certificate https://github.com/openssl/openssl/releases/download/${fullversion}/${fullversion}.tar.gz
         tar -xvzf ${fullversion}.tar.gz
         cd ${fullversion}/
     else
-        wget --no-check-certificate https://github.com/openssl/openssl/archive/${fullversion}.tar.gz
+        wget -nv --no-check-certificate https://github.com/openssl/openssl/archive/${fullversion}.tar.gz
         tar -xvzf ${fullversion}.tar.gz
         cd openssl-${fullversion}/
     fi
@@ -513,7 +520,7 @@ build_python(){
         pversion="3.12.10"
     fi
     arraypversion=(${pversion//\./ })
-    wget --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
+    wget -nv --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
     tar xzf Python-${pversion}.tgz
     cd Python-${pversion}
     if [ "x$OS" = "xrpm" ]; then
@@ -620,7 +627,9 @@ install_deps() {
                 yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
                 subscription-manager repos --enable codeready-builder-for-rhel-${RHEL}-x86_64-rpms
             fi
-            yum -y install epel-release
+            if [ $RHEL != 10 ]; then
+                yum -y install epel-release
+            fi
             yum -y install git wget
             yum -y install binutils tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize
             yum -y install automake autoconf jemalloc jemalloc-devel
@@ -647,17 +656,17 @@ install_deps() {
                     sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
                     sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
                 fi
-                if [ ${SHELL_BRANCH:2:1} = 0 ]; then
-                    yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
-                    yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
-                    update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-11/root/bin/gcc 80
-                    update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-11/root/bin/g++ 80
-                else
+#                if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+#                    yum -y install gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils # gcc-toolset-10-annobin
+#                    yum -y install gcc-toolset-11-annobin-annocheck gcc-toolset-11-annobin-plugin-gcc
+#                    update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-11/root/bin/gcc 80
+#                    update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-11/root/bin/g++ 80
+#                else
                     yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils # gcc-toolset-10-annobin
                     yum -y install gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
                     update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/bin/gcc 80
                     update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/bin/g++ 80
-                fi
+#                fi
                 if [ x"$ARCH" = "xx86_64" ]; then
                     yum -y remove centos-release-stream
                 fi
@@ -674,10 +683,14 @@ install_deps() {
             if [ $RHEL = 9 -o $RHEL = 10 ]; then
                 yum -y install krb5-devel
                 yum -y install zlib zlib-devel
-                yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
-                pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
-                ln -s annobin.so gcc-annobin.so
-                popd
+                if [ $RHEL = 9 ]; then
+                    yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
+                    pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
+                        ln -s annobin.so gcc-annobin.so
+                    popd
+                else
+                    yum -y install gcc gcc-c++
+                fi
             fi
             build_python
             #build_oci_sdk
@@ -912,8 +925,8 @@ get_deb_sources(){
 
 build_ssh(){
     cd "${WORKDIR}"
-    wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.8.9.tar.bz2
-    wget --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.45.tar.bz2
+    wget -nv --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.8.9.tar.bz2
+    wget -nv --no-check-certificate https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.45.tar.bz2
     tar -xvf libgcrypt-1.8.9.tar.bz2
     tar -xvf libgpg-error-1.45.tar.bz2
     rm -f libgpg-error-1.45.tar.bz2 libgcrypt-1.8.9.tar.bz2
@@ -928,7 +941,7 @@ build_ssh(){
     make install
     cd -
     cd "${WORKDIR}"
-    wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.3.orig.tar.xz
+    wget -nv --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.3.orig.tar.xz
     tar -xvf libssh_0.9.3.orig.tar.xz
     cd libssh-0.9.3/
     mkdir build
