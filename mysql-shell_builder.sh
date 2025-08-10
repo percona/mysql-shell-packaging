@@ -1078,7 +1078,7 @@ build_rpm(){
     #get_v8
     get_GraalVM
     get_protobuf
-    if [ $RHEL = 9 -o $RHEL = 10 ]; then
+    if [ $RHEL = 9 ]; then
         yum -y remove gcc gcc-c++
         update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/usr/bin/gcc 200 --slave /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/usr/bin/g++ --slave /usr/bin/gcov gcov /opt/rh/gcc-toolset-12/root/usr/bin/gcov
     fi
