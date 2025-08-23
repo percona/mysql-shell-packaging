@@ -947,6 +947,7 @@ build_ssh(){
     cmake --version
     cmake  -Wno-error-implicit-function-declaration -DWITH_GCRYPT=OFF -DWITH_ZLIB=OFF -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
     make
+    rm -rf /usr/lib64/cmake/libssh
     make install
     ls -la /usr/lib64/cmake/libssh/
     head -12 /usr/lib64/cmake/libssh/libssh-config-version.cmake
