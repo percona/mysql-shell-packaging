@@ -153,7 +153,6 @@ get_protobuf(){
         fi
     fi
     cd "${WORKDIR}"
-    rm -rf "${PROTOBUF_REPO}"
     git clone "${PROTOBUF_REPO}"
     retval=$?
     if [ $retval != 0 ]
@@ -249,7 +248,7 @@ get_database(){
             cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
         else
             if [ $RHEL = 10 ]; then
-                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/gcc -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1
+                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1
             else
                 cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1
             fi
@@ -512,9 +511,9 @@ build_python(){
     get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
-        pversion="3.9.22"
+        pversion="3.9.23"
     else # OS=deb
-        pversion="3.12.10"
+        pversion="3.12.11"
     fi
     arraypversion=(${pversion//\./ })
     wget -nv --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
@@ -624,7 +623,9 @@ install_deps() {
                 yum config-manager --set-enabled PowerTools || yum config-manager --set-enabled powertools
                 subscription-manager repos --enable codeready-builder-for-rhel-${RHEL}-x86_64-rpms
             fi
-            if [ $RHEL != 10 ]; then
+            if [ $RHEL = 10 ]; then
+                yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
+            else
                 yum -y install epel-release
             fi
             yum -y install git wget
@@ -946,7 +947,10 @@ build_ssh(){
     cmake --version
     cmake  -Wno-error-implicit-function-declaration -DWITH_GCRYPT=OFF -DWITH_ZLIB=OFF -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ..
     make
+    rm -rf /usr/lib64/cmake/libssh
     make install
+    ls -la /usr/lib64/cmake/libssh/
+    head -12 /usr/lib64/cmake/libssh/libssh-config-version.cmake
     cd ${WORKDIR}
 }
 
@@ -1002,7 +1006,7 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1: -DHAVE_PYTHON=2 -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -Dlibssh_DIR=/usr/lib64/cmake/libssh -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
@@ -1106,7 +1110,7 @@ build_rpm(){
         fi
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        QA_RPATHS=$((0x0002|0x0010)) rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
