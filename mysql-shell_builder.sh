@@ -344,7 +344,7 @@ get_sources(){
         echo "Sources will not be downloaded"
         return 0
     fi
-    build_ssh
+    #build_ssh
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL != 8 ]; then
             source /opt/rh/devtoolset-7/enable
@@ -511,7 +511,7 @@ build_python(){
     get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
-        pversion="3.9.23"
+        pversion="3.11.13"
     else # OS=deb
         pversion="3.12.11"
     fi
@@ -523,21 +523,21 @@ build_python(){
         if [ $RHEL -le 7 ]; then
             sed -i 's/SSL=\/usr\/local\/ssl/SSL=\/usr\/local\/openssl/g' Modules/Setup
         fi
-        if [ $RHEL -le 8 -o $RHEL = 9 -o $RHEL = 10 ]; then
-            sed -i '210 s/^##*//' Modules/Setup
-            sed -i '214,217 s/^##*//' Modules/Setup
+        #if [ $RHEL -le 8 -o $RHEL = 9 -o $RHEL = 10 ]; then
+        #    sed -i '210 s/^##*//' Modules/Setup
+        #    sed -i '214,217 s/^##*//' Modules/Setup
         #else
         #    sed -i '206 s/^##*//' Modules/Setup
         #    sed -i '210,213 s/^##*//' Modules/Setup
-        fi
+        #fi
     fi
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
-            ./configure --prefix=/usr/local/python39 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+            ./configure --prefix=/usr/local/python311 --with-openssl=/usr/local/openssl --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
         elif [ $RHEL = 9 -o $RHEL = 10 ]; then
-            ./configure --prefix=/usr/local/python39 --with-openssl=/usr/lib64 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+            ./configure --prefix=/usr/local/python311 --with-openssl=/usr --with-openssl-rpath=auto --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
         else # el8
-            ./configure --prefix=/usr/local/python39 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python39/lib
+            ./configure --prefix=/usr/local/python311 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python311/lib
         fi
     else
         ./configure --prefix=/usr/local/python312 --with-system-ffi --enable-shared LDFLAGS=-Wl,-rpath=/usr/local/python312/lib
@@ -599,7 +599,7 @@ install_deps() {
             else
                 dnf -y install yum
                 yum -y install yum-utils
-                yum-config-manager --enable ol8_codeready_builder
+                yum-config-manager --enable ol${RHEL}_codeready_builder
             fi
         fi
         if [ $RHEL = 9 -o $RHEL = 10 ]; then
@@ -625,8 +625,10 @@ install_deps() {
             fi
             if [ $RHEL = 10 ]; then
                 yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
+                yum -y install libssh2 libssh2-devel
             else
                 yum -y install epel-release
+                yum -y install libssh libssh-devel
             fi
             yum -y install git wget
             yum -y install binutils tar rpm-build rsync bison glibc glibc-devel libstdc++-devel libtirpc-devel make openssl-devel pam-devel perl perl-JSON perl-Memoize
@@ -682,10 +684,18 @@ install_deps() {
                 yum -y install krb5-devel
                 yum -y install zlib zlib-devel
                 if [ $RHEL = 9 ]; then
+                    mv /usr/bin/cc /usr/bin/cc.orig
+                    mv /usr/bin/gcc /usr/bin/gcc.orig
+                    mv /usr/bin/c++ /usr/bin/c++.orig
+                    mv /usr/bin/g++ /usr/bin/g++.orig
                     yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
-                    pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
-                        ln -s annobin.so gcc-annobin.so
-                    popd
+                    update-alternatives --install /usr/bin/cc cc /opt/rh/gcc-toolset-12/root/bin/cc 80
+                    update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/bin/gcc 80
+                    update-alternatives --install /usr/bin/c++ c++ /opt/rh/gcc-toolset-12/root/bin/c++ 80
+                    update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/bin/g++ 80
+                 #   pushd /opt/rh/gcc-toolset-12/root/usr/lib/gcc/${ARCH}-redhat-linux/12/plugin/
+                 #       ln -s annobin.so gcc-annobin.so
+                 #   popd
                 else
                     yum -y install gcc gcc-c++
                 fi
@@ -807,6 +817,8 @@ install_deps() {
         apt-get -y install pkg-config
         apt-get -y install libudev-dev
         apt-get -y install libbsd-dev
+        apt-get -y install libssh-4
+        apt-get -y install libssh-dev
         if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" ]; then
             apt-get -y install gcc-10 g++-10
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
@@ -853,7 +865,7 @@ install_deps() {
                 ln -s /usr/bin/pip3 /usr/bin/pip
             fi
             apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
-            build_ssh
+            #build_ssh
         fi
         if [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xbullseye"]; then
             ${PIP_UTIL} install --upgrade pip
@@ -864,7 +876,7 @@ install_deps() {
             get_cmake 3.6.3
         fi
         if [ "x${DIST}" = "xbionic" -o "x${DIST}" = "xbuster" ]; then
-            build_ssh
+            #build_ssh
             get_cmake 3.16.3
         fi
         build_python
@@ -939,9 +951,9 @@ build_ssh(){
     make install
     cd -
     cd "${WORKDIR}"
-    wget -nv --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.3.orig.tar.xz
-    tar -xvf libssh_0.9.3.orig.tar.xz
-    cd libssh-0.9.3/
+    wget -nv --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/libs/libssh/libssh_0.9.6.orig.tar.xz
+    tar -xvf libssh_0.9.6.orig.tar.xz
+    cd libssh-0.9.6/
     mkdir build
     cd build
     cmake --version
@@ -966,7 +978,7 @@ build_srpm(){
         echo "It is not possible to build src rpm here"
         exit 1
     fi
-    build_ssh
+    #build_ssh
     if [ $RHEL != 8 ]; then
         source /opt/rh/devtoolset-7/enable
         source /opt/rh/rh-python38/enable
@@ -1006,13 +1018,13 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -Dlibssh_DIR=/usr/lib64/cmake/libssh -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     #sed -i '59,60d' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
-    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libssh | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
     sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
     sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
     sed -i "s|%files|%if %{?rhel} > 7\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
@@ -1046,7 +1058,7 @@ build_rpm(){
     then
         echo "It is not possible to build rpm here"
     fi
-    build_ssh
+    #build_ssh
     SRC_RPM=$(basename $(find $WORKDIR/srpm -name 'percona-mysql-shell-*.src.rpm' | sort | tail -n1))
     if [ -z $SRC_RPM ]
     then
@@ -1082,10 +1094,6 @@ build_rpm(){
     #get_v8
     get_GraalVM
     get_protobuf
-    if [ $RHEL = 9 ]; then
-        yum -y remove gcc gcc-c++
-        update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-12/root/usr/bin/gcc 200 --slave /usr/bin/g++ g++ /opt/rh/gcc-toolset-12/root/usr/bin/g++ --slave /usr/bin/gcov gcov /opt/rh/gcc-toolset-12/root/usr/bin/gcov
-    fi
     get_database
     build_oci_sdk
     if [ $RHEL = 7 ]; then
@@ -1101,16 +1109,16 @@ build_rpm(){
         rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_openssl /usr/local/openssl" --define "bundled_python /usr/local/python37/" --define "bundled_shared_python yes" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 7 ]; then
         source /opt/rh/devtoolset-11/enable
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python311/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     elif [ ${RHEL} = 8 ]; then
         if [ ${SHELL_BRANCH:2:1} = 1 ]; then
             source /opt/rh/gcc-toolset-11/enable
         else
             source /opt/rh/gcc-toolset-12/enable
         fi
-        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python311/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     else
-        QA_RPATHS=$((0x0002|0x0010)) rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python39/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "bundled_ssh 1" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
+        QA_RPATHS=$((0x0001|0x0002|0x0010)) rpmbuild --define "_topdir ${WORKDIR}/rpmbuild" --define "dist .el${RHEL}" --define "with_mysql_source $WORKDIR/percona-server" --define "static 1" --define "with_protobuf $WORKDIR/protobuf/src/" --define "with_oci $WORKDIR/oci_sdk" --define "bundled_python /usr/local/python311/" --define "bundled_shared_python yes" --define "bundled_antlr /opt/antlr4/usr/local/" --define "jit_executor_lib $WORKDIR/polyglot-nativeapi-native-library/" --rebuild rpmbuild/SRPMS/${SRCRPM}
     fi
     return_code=$?
     if [ $return_code != 0 ]; then
@@ -1134,7 +1142,7 @@ build_source_deb(){
         echo "It is not possible to build source deb here"
         exit 1
     fi
-    build_ssh
+    #build_ssh
     rm -rf mysql-shell*
     get_tar "source_tarball"
     rm -f *.dsc *.orig.tar.gz *.debian.tar.* *.changes
@@ -1184,7 +1192,7 @@ build_deb(){
         echo "It is not possible to build source deb here"
         exit 1
     fi
-    build_ssh
+    #build_ssh
     for file in 'dsc' 'orig.tar.gz' 'changes' 'tar.xz'
     do
         get_deb_sources $file
@@ -1216,16 +1224,16 @@ build_deb(){
     sed -i '/-DCMAKE/,/j8/d' debian/rules
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
-    echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
+    #echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
     echo "usr/lib/mysqlsh/libprotobuf*.so*" >> debian/install
     echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
     echo "usr/lib/mysqlsh/libgmock.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
     if [ "x${DEBIAN_VERSION}" = "xjammy" -o "x${DEBIAN_VERSION}" = "xnoble" ]; then
-        sed -i "s:VERBOSE=1:-DCMAKE_SHARED_LINKER_FLAGS="" -DCMAKE_MODULE_LINKER_FLAGS="" -DCMAKE_CXX_FLAGS="" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
+        sed -i "s:VERBOSE=1:-DCMAKE_SHARED_LINKER_FLAGS="" -DCMAKE_MODULE_LINKER_FLAGS="" -DCMAKE_CXX_FLAGS="" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
         sed -i "s/override_dh_auto_clean:/override_dh_auto_clean:\n\noverride_dh_auto_build:\n\tmake -j1/" debian/rules
     else
-        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_SSH_DIR=${WORKDIR}/libssh-0.9.3/build/ . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     fi
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
@@ -1280,7 +1288,7 @@ build_tarball(){
     get_database
     #get_v8
     get_GraalVM
-    build_ssh
+    #build_ssh
     build_oci_sdk
     cd ${WORKDIR}
     rm -fr ${TARFILE%.tar.gz}
@@ -1314,10 +1322,11 @@ build_tarball(){
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system \
+                -DBUNDLED_SSH_DIR='' \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
-                -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python311 \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
+                -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library
         elif [ $RHEL = 7 -o $RHEL = 8 ]; then
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
@@ -1330,11 +1339,11 @@ build_tarball(){
                 -DWITH_PROTOBUF=system \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
-                -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
+                -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python311 \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library
         else
@@ -1350,10 +1359,10 @@ build_tarball(){
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
                 -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
                 -DBUNDLED_OPENSSL_DIR=/usr/local/openssl11 \
-                -DPYTHON_INCLUDE_DIRS=/usr/local/python39/include/python3.9 \
-                -DPYTHON_LIBRARIES=/usr/local/python39/lib/libpython3.9.so \
+                -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
+                -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
-                -DBUNDLED_PYTHON_DIR=/usr/local/python39 \
+                -DBUNDLED_PYTHON_DIR=/usr/local/python311 \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library
         fi
