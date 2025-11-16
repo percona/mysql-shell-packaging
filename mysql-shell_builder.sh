@@ -431,7 +431,7 @@ build_oci_sdk(){
     fi
     . oci_sdk/bin/activate
     if [ "x$OS" = "xdeb" ]; then
-        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" ]; then
+        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" ]; then
             pip3 install -r requirements.txt
             pip3 install -e .
         else
@@ -547,7 +547,7 @@ build_python(){
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
-    if [[ "x$OS_NAME" = "xbookworm" || "x$OS_NAME" = "xnoble" ]]; then
+    if [[ "x$OS_NAME" = "xbookworm" || "x$OS_NAME" = "xnoble" || "x$OS_NAME" = "xtrixie" ]]; then
         update-alternatives --remove-all python3
         update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
         update-alternatives --remove-all pip3
@@ -819,7 +819,7 @@ install_deps() {
         apt-get -y install libbsd-dev
         apt-get -y install libssh-4
         apt-get -y install libssh-dev
-        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" ]; then
+        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
             apt-get -y install gcc-10 g++-10
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
         else
@@ -828,7 +828,7 @@ install_deps() {
         if [ "x${DIST}" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
         fi
-        if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" ]; then
+        if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" ]; then
             apt-get -y install python3-virtualenv libtirpc-dev
         fi
         if [ "x${DIST}" = "xstretch" ]; then
@@ -837,7 +837,7 @@ install_deps() {
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
             apt-get -y install python3-mysqldb
         else
             apt-get -y install python-mysqldb
@@ -849,7 +849,7 @@ install_deps() {
         apt-get -y install python3-dev || true
         apt-get -y install libffi-dev || true
         PIP_UTIL="pip3"
-        if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" ]; then
+        if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
             apt-get -y install pipx
             PIP_UTIL="pipx"
         fi
