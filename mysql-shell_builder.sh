@@ -389,7 +389,7 @@ get_sources(){
             #curl -L https://github.com/kamil-holubicki/mysql-shell/pull/2.patch -o PS-10413.patch
             curl -L https://github.com/kamil-holubicki/mysql-shell/compare/9.6...PS-10413_and_PS-10416.patch -o PS-10413.patch
             git apply --stat PS-10413.patch
-            patch -p1 -f --fuzz=3 < PS-10413.patch
+            patch -p1 -N --fuzz=3 < PS-10413.patch
             git diff mysqlshdk/libs/storage/backend/object_storage_bucket.cc
         fi
     fi
