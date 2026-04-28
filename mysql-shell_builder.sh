@@ -856,8 +856,8 @@ install_deps() {
         apt-get -y install libssh-4
         apt-get -y install libssh-dev
         if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
-            apt-get -y install gcc-10 g++-10
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+            apt-get -y install gcc-11 g++-11
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
         else
             apt-get -y install gcc g++
         fi
