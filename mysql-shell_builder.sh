@@ -1045,6 +1045,7 @@ build_srpm(){
     sed -i 's|%{name}-@MYSH_VERSION@-src|%{name}-@MYSH_VERSION@|' mysql-shell.spec
     sed -i 's|%setup -q -n %{name}-|%setup -q -n mysql-shell-|' mysql-shell.spec
     sed -i '/with_protobuf/,/endif/d' mysql-shell.spec
+    sed -i 's|_protobuflibs libprotobuf|_protobuflibs libprotobuf-lite|g' mysql-shell.spec
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
