@@ -185,7 +185,7 @@ get_protobuf(){
         unzip protoc-24.4-linux-x86_64.zip
     fi
     cp bin/protoc /usr/local/bin
-    cp -r include/* /usr/local/include
+    cp -r -v include/*-lite* /usr/local/include
     return
 }
 
@@ -1054,14 +1054,14 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7 \|\|  0%{?amzn} >= 2023\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
     sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
-    sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
-    sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
+    sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf-lite.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
+    sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf-lite.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
     sed -i "s|%files|%if 0%{?rhel} > 7 \|\| 0%{?amzn} >= 2023\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
     #sed -i 's:%{?_smp_mflags}:VERBOSE=1:g' mysql-shell.spec # if a one thread is required 
@@ -1265,7 +1265,7 @@ build_deb(){
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
     #echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
-    echo "usr/lib/mysqlsh/libprotobuf*.so*" >> debian/install
+    echo "usr/lib/mysqlsh/libprotobuf-lite.so*" >> debian/install
     echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
     echo "usr/lib/mysqlsh/libgmock.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
@@ -1281,7 +1281,7 @@ build_deb(){
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -fr debian/tmp/usr/local\n\trm -fr debian/tmp/usr/bin/mysqlshrec:' debian/rules
     fi
     sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
-    sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
+    sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf-lite* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
     grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
@@ -1360,7 +1360,7 @@ build_tarball(){
                 -DWITH_PROTOBUF=system \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
+                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a \
                 -DBUNDLED_OPENSSL_DIR=system \
                 -DBUNDLED_SSH_DIR='' \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
@@ -1378,7 +1378,7 @@ build_tarball(){
                 -DWITH_STATIC_LINKING=ON \
                 -DWITH_PROTOBUF=system \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
+                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a\
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
                 -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
@@ -1397,7 +1397,7 @@ build_tarball(){
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DWITH_PROTOBUF=system \
                 -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
+                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a\
                 -DBUNDLED_OPENSSL_DIR=/usr/local/openssl11 \
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
                 -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
@@ -1415,7 +1415,7 @@ build_tarball(){
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_PROTOBUF=system \
             -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-            -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
+            -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a\
             -DWITH_OCI=$WORKDIR/oci_sdk \
             -DWITH_STATIC_LINKING=ON \
             -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
@@ -1432,7 +1432,7 @@ build_tarball(){
         cp -r lib ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
     fi
     LIB_DIR=$([ -d /usr/local/lib64 ] && echo /usr/local/lib64 || echo /usr/local/lib)
-    cp ${LIB_DIR}/libprotobuf.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
+    cp ${LIB_DIR}/libprotobuf-lite.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     cp ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     chmod +x ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
     cd ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
