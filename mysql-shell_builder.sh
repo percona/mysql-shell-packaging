@@ -266,22 +266,24 @@ get_database(){
         cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
     fi
 
-    cmake --build . --target authentication_oci_client
-    cmake --build . --target mysqlclient
-    cmake --build . --target mysqlxclient
+    cmake --build . --target authentication_oci_client -j$(nproc)
+    cmake --build . --target mysqlclient -j$(nproc)
+    cmake --build . --target mysqlxclient -j$(nproc)
+    cmake --build . --target mysqlxclient_lite -j$(nproc)
+    cmake --build . --target mysqlxmessages_lite -j$(nproc)
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
-        cmake --build . --target authentication_fido_client
+        cmake --build . --target authentication_fido_client -j$(nproc)
     fi
-    cmake --build . --target authentication_ldap_sasl_client
-    cmake --build . --target authentication_kerberos_client
+    cmake --build . --target authentication_ldap_sasl_client -j$(nproc)
+    cmake --build . --target authentication_kerberos_client -j$(nproc)
     if [ ${SHELL_BRANCH:2:1} != 0 ]; then
-        cmake --build . --target authentication_webauthn_client
+        cmake --build . --target authentication_webauthn_client -j$(nproc)
     fi
     if [ ${SHELL_BRANCH:0:1} = 9 ]; then
-        cmake --build . --target authentication_openid_connect_client
-        cmake --build . --target mysql_native_password
-        cmake --build . --target mysqlbinlog
-        cmake --build . --target mysql_binlog_event_standalone
+        cmake --build . --target authentication_openid_connect_client -j$(nproc)
+        cmake --build . --target mysql_native_password -j$(nproc)
+        cmake --build . --target mysqlbinlog -j$(nproc)
+        cmake --build . --target mysql_binlog_event_standalone -j$(nproc)
         cp -v ../router/src/routing_guidelines/src/parser.cc router/src/routing_guidelines/src/
     fi
     cd $WORKDIR
