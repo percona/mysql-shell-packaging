@@ -134,7 +134,7 @@ get_antlr4-runtime(){
     cd "${WORKDIR}"
     git clone https://github.com/antlr/antlr4.git
     cd antlr4/runtime/Cpp
-    git checkout v4.13.2
+    git checkout 4.13.2
     mkdir -p build && mkdir -p run && cd build
     cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
     make -j8
