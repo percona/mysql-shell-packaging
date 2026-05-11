@@ -1057,7 +1057,7 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DWITH_PROTOBUF_LITE=ON -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF_LITE=ON -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7 \|\|  0%{?amzn} >= 2023\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
@@ -1362,8 +1362,6 @@ build_tarball(){
                 -DWITH_STATIC_LINKING=ON \
                 -DWITH_PROTOBUF_LITE=ON \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a \
                 -DBUNDLED_OPENSSL_DIR=system \
                 -DBUNDLED_SSH_DIR='' \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
@@ -1380,8 +1378,6 @@ build_tarball(){
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
                 -DWITH_PROTOBUF_LITE=ON \
-                -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a\
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
                 -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
@@ -1399,8 +1395,6 @@ build_tarball(){
                 -DWITH_STATIC_LINKING=ON \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
                 -DWITH_PROTOBUF_LITE=ON \
-                -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a\
                 -DBUNDLED_OPENSSL_DIR=/usr/local/openssl11 \
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
                 -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
@@ -1417,8 +1411,6 @@ build_tarball(){
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
             -DWITH_PROTOBUF_LITE=ON \
-            -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-            -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf-lite.a\
             -DWITH_OCI=$WORKDIR/oci_sdk \
             -DWITH_STATIC_LINKING=ON \
             -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
