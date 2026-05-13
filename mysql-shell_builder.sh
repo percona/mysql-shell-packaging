@@ -254,16 +254,16 @@ get_database(){
         #    fi
         #fi
         if [ $RHEL = 6 ]; then
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
         else
             if [ $RHEL = 10 ]; then
-                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
             else
-                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
             fi
         fi
     else
-        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
     fi
 
     cmake --build . --target authentication_oci_client -j$(nproc)
