@@ -286,6 +286,8 @@ get_database(){
         cmake --build . --target mysql_binlog_event_standalone -j$(nproc)
         cp -v ../router/src/routing_guidelines/src/parser.cc router/src/routing_guidelines/src/
     fi
+    cp -a /usr/local/lib64/libprotobuf-lite.so* /usr/local/lib/libprotobuf-lite.so* library_output_directory/ 2>/dev/null
+    ls -la library_output_directory/
     cd $WORKDIR
     export PATH=$MY_PATH
     return
