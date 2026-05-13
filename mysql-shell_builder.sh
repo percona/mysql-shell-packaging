@@ -271,6 +271,7 @@ get_database(){
     cmake --build . --target mysqlxclient -j$(nproc)
     cmake --build . --target mysqlxclient_lite -j$(nproc)
     cmake --build . --target mysqlxmessages_lite -j$(nproc)
+    cmake --build . --target libprotobuf-lite -j$(nproc)
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
         cmake --build . --target authentication_fido_client -j$(nproc)
     fi
