@@ -951,7 +951,7 @@ install_deps() {
         ln -s /usr/local/percona-subunit2junitxml/subunit2junitxml /usr/bin/subunit2junitxml
         cd ${CURPLACE}
     fi
-    get_protobuf
+    #get_protobuf
     get_antlr4-runtime
     return;
 }
@@ -1156,7 +1156,7 @@ build_rpm(){
     fi
     #get_v8
     get_GraalVM
-    get_protobuf
+    #get_protobuf
     get_database
     build_oci_sdk
     if [ $RHEL = 7 ]; then
@@ -1284,7 +1284,7 @@ build_deb(){
     echo "VERSION=${VERSION}" >> mysql-shell.properties
     #
     dpkg-source -x ${DSC}
-    get_protobuf
+    #get_protobuf
     get_database
     #get_v8
     get_GraalVM
@@ -1458,7 +1458,7 @@ build_tarball(){
     fi
     LIB_DIR=$([ -d /usr/local/lib64 ] && echo /usr/local/lib64 || echo /usr/local/lib)
     #cp ${LIB_DIR}/libprotobuf-lite.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
-    #cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
+    cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     chmod +x ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
     cd ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
     ln -s bin libexec
