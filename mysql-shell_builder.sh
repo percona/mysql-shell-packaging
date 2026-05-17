@@ -1087,7 +1087,7 @@ build_srpm(){
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
-    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf | grep -v absl); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
     #sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf-lite.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp -a /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
     sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf-lite.so" ]]; then cp -a /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
     #sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf-lite.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
@@ -1314,6 +1314,7 @@ build_deb(){
     fi
     sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
     #sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf-lite* debian/tmp/usr/lib/mysqlsh\n\tcp -a -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
+    sed -i 's@^\tdh_install --fail-missing$@&\n\t# Ensure private libs can find each other at runtime\n\tfor lib in debian/mysql-shell$(PRODUCT_SUFFIX)/usr/lib/mysqlsh/lib*.so*; do \\\n\t  [ -f "$$lib" ] \&\& patchelf --set-rpath '"'"'$$ORIGIN'"'"' "$$lib" || true; \\\n\tdone@' debian/rules
     sed -i 's|override_dh_install:|\tcp -a -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
     grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
