@@ -185,7 +185,7 @@ get_protobuf(){
         unzip protoc-24.4-linux-x86_64.zip
     fi
     cp bin/protoc /usr/local/bin
-    cp -r -v include/*-lite* /usr/local/include
+    #cp -r -v include/*-lite* /usr/local/include
     return
 }
 
@@ -310,8 +310,7 @@ get_database(){
         cmake --build . --target mysql_binlog_event_standalone -j$(nproc)
         cp -v ../router/src/routing_guidelines/src/parser.cc router/src/routing_guidelines/src/
     fi
-    #cp -a /usr/local/lib64/libprotobuf-lite.so* /usr/local/lib/libprotobuf-lite.so* library_output_directory/ 2>/dev/null
-    #ls -la library_output_directory/
+    patchelf --set-rpath '$ORIGIN' library_output_directory/libprotobuf-lite.so*
     cd $WORKDIR
     export PATH=$MY_PATH
     return
@@ -487,7 +486,7 @@ build_oci_sdk(){
     fi
     . oci_sdk/bin/activate
     if [ "x$OS" = "xdeb" ]; then
-        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" ]; then
+        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             pip3 install -r requirements.txt
             pip3 install -e .
         else
@@ -608,7 +607,7 @@ build_python(){
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
-    if [[ "x$OS_NAME" = "xbookworm" || "x$OS_NAME" = "xnoble" || "x$OS_NAME" = "xtrixie" ]]; then
+    if [[ "x$OS_NAME" = "xbookworm" || "x$OS_NAME" = "xnoble" || "x$OS_NAME" = "xtrixie" || "x$OS_NAME" = "xresolute" ]]; then
         update-alternatives --remove-all python3
         update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
         update-alternatives --remove-all pip3
@@ -883,7 +882,7 @@ install_deps() {
         apt-get -y install libbsd-dev
         apt-get -y install libssh-4
         apt-get -y install libssh-dev
-        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
+        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install gcc-11 g++-11
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
         else
@@ -892,7 +891,7 @@ install_deps() {
         if [ "x${DIST}" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
         fi
-        if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" ]; then
+        if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install python3-virtualenv libtirpc-dev
         fi
         if [ "x${DIST}" = "xstretch" ]; then
@@ -901,7 +900,7 @@ install_deps() {
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install python3-mysqldb
         else
             apt-get -y install python-mysqldb
@@ -913,7 +912,7 @@ install_deps() {
         apt-get -y install python3-dev || true
         apt-get -y install libffi-dev || true
         PIP_UTIL="pip3"
-        if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
+        if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install pipx
             PIP_UTIL="pipx"
         fi
@@ -1086,6 +1085,7 @@ build_srpm(){
     sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF_LITE=ON -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
     sed -i 's|-DWITH_PROTOBUF=[^ ]*||g' mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7 \|\|  0%{?amzn} >= 2023\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
+    sed -i '/^# Dependencies for the cloud version/i Requires:       libicu mysql-shell.spec'
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
@@ -1317,7 +1317,7 @@ build_deb(){
     sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
     #sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf-lite* debian/tmp/usr/lib/mysqlsh\n\tcp -a -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's@^\tdh_install --fail-missing$@&\n\t# Ensure private libs can find each other at runtime\n\tfor lib in debian/mysql-shell$(PRODUCT_SUFFIX)/usr/lib/mysqlsh/lib*.so*; do \\\n\t  [ -f "$$lib" ] \&\& patchelf --set-rpath '"'"'$$ORIGIN'"'"' "$$lib" || true; \\\n\tdone@' debian/rules
-    #sed -i 's|override_dh_install:|\tcp -a -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
+    sed -i 's|override_dh_install:|\tcp -a -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
     grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
