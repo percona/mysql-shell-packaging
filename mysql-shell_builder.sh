@@ -273,6 +273,7 @@ get_database(){
     cmake --build . --target mysqlxmessages_lite -j$(nproc)
     cmake --build . --target libprotobuf-lite -j$(nproc)
     cmake --build . --target gmock -j$(nproc)
+    cmake --build . --target gmock_main -j$(nproc)
     cmake --build . -j$(nproc) --target \
         absl_bad_optional_access absl_bad_variant_access absl_base absl_city \
         absl_civil_time absl_cord absl_cord_internal absl_cordz_functions \
@@ -952,7 +953,7 @@ install_deps() {
         ln -s /usr/local/percona-subunit2junitxml/subunit2junitxml /usr/bin/subunit2junitxml
         cd ${CURPLACE}
     fi
-    #get_protobuf
+    get_protobuf
     get_antlr4-runtime
     return;
 }
@@ -1157,7 +1158,7 @@ build_rpm(){
     fi
     #get_v8
     get_GraalVM
-    #get_protobuf
+    get_protobuf
     get_database
     build_oci_sdk
     if [ $RHEL = 7 ]; then
@@ -1285,7 +1286,7 @@ build_deb(){
     echo "VERSION=${VERSION}" >> mysql-shell.properties
     #
     dpkg-source -x ${DSC}
-    #get_protobuf
+    get_protobuf
     get_database
     #get_v8
     get_GraalVM
