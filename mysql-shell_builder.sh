@@ -849,7 +849,7 @@ install_deps() {
         apt-get update
         sleep 20
         apt-get -y install dirmngr || true
-        apt-get -y install lsb-release wget curl gnupg2
+        apt-get -y install lsb-release wget curl gnupg2 git
         wget --no-check-certificate https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
         percona-release enable tools testing
         export DEBIAN_FRONTEND="noninteractive"
