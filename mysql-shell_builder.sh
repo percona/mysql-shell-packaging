@@ -223,8 +223,13 @@ get_database(){
         #if [[ $RHEL = 9 && ${SHELL_BRANCH:0:1} = 9 ]]; then
         #    sed -i 's:gcc-toolset-14:gcc-toolset-13:g' CMakeLists.txt
         #fi
-        if [ "x$OS_NAME" = "xnoble" -o "x$OS_NAME" = "xresolute" ]; then
+        if [ "x$OS_NAME" = "xnoble" ]; then
             sed -i 's:D_FORTIFY_SOURCE=2:D_FORTIFY_SOURCE=3:g' CMakeLists.txt
+        fi
+        if [ "x$OS_NAME" = "xresolute" ]; then
+            sed -i '/-U_FORTIFY_SOURCE/!s/-D_FORTIFY_SOURCE=2/-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2/g' \
+              extra/libfido2/libfido2-*/CMakeLists.txt \
+              extra/libfido2/libfido2-*/src/CMakeLists.txt
         fi
         if [ ${SHELL_BRANCH:0:1} = 9 ]; then
             pushd router/src/routing_guidelines/src
