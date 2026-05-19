@@ -184,7 +184,7 @@ get_protobuf(){
         wget -nv https://github.com/protocolbuffers/protobuf/releases/download/v24.4/protoc-24.4-linux-x86_64.zip
         unzip protoc-24.4-linux-x86_64.zip
     fi
-    cp bin/protoc /usr/local/bin
+    #cp bin/protoc /usr/local/bin
     #cp -r -v include/*-lite* /usr/local/include
     return
 }
@@ -227,9 +227,7 @@ get_database(){
             sed -i 's:D_FORTIFY_SOURCE=2:D_FORTIFY_SOURCE=3:g' CMakeLists.txt
         fi
         if [ "x$OS_NAME" = "xresolute" ]; then
-            sed -i '/-U_FORTIFY_SOURCE/!s/-D_FORTIFY_SOURCE=2/-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2/g' \
-              extra/libfido2/libfido2-*/CMakeLists.txt \
-              extra/libfido2/libfido2-*/src/CMakeLists.txt
+            export DEB_CPPFLAGS_STRIP="-D_FORTIFY_SOURCE=3"
         fi
         if [ ${SHELL_BRANCH:0:1} = 9 ]; then
             pushd router/src/routing_guidelines/src
@@ -1469,6 +1467,7 @@ build_tarball(){
     #cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     chmod +x ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
     cd ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
+    patchelf --set-rpath '$ORIGIN' lib/mysqlsh/libabsl_*
     ln -s bin libexec
     cd ..
     tar -zcvf ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
