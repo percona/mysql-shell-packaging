@@ -223,7 +223,7 @@ get_database(){
         #if [[ $RHEL = 9 && ${SHELL_BRANCH:0:1} = 9 ]]; then
         #    sed -i 's:gcc-toolset-14:gcc-toolset-13:g' CMakeLists.txt
         #fi
-        if [ "x$OS_NAME" = "xnoble" ]; then
+        if [ "x$OS_NAME" = "xnoble" -o "x$OS_NAME" = "xresolute" ]; then
             sed -i 's:D_FORTIFY_SOURCE=2:D_FORTIFY_SOURCE=3:g' CMakeLists.txt
         fi
         if [ ${SHELL_BRANCH:0:1} = 9 ]; then
@@ -1460,7 +1460,7 @@ build_tarball(){
         cp -r lib ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
     fi
     LIB_DIR=$([ -d /usr/local/lib64 ] && echo /usr/local/lib64 || echo /usr/local/lib)
-    #cp ${LIB_DIR}/libprotobuf-lite.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
+    cp ${LIB_DIR}/libprotobuf-lite.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     chmod +x ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
     cd ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
