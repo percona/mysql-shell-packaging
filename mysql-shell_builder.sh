@@ -878,7 +878,7 @@ install_deps() {
         apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
         apt-get -y install libkrb5-dev
         apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
-        apt-get -y install libantlr4-runtime-dev
+        #apt-get -y install libantlr4-runtime-dev
         apt-get -y install uuid-dev
         apt-get -y install pkg-config
         apt-get -y install libudev-dev
