@@ -136,7 +136,7 @@ get_antlr4-runtime(){
     cd antlr4/runtime/Cpp
     git checkout 4.13.2
     mkdir -p build && mkdir -p run && cd build
-    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
+    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     make -j8
     mkdir -p /opt/antlr4
     chmod a+w /opt/antlr4
@@ -885,9 +885,12 @@ install_deps() {
         apt-get -y install libbsd-dev
         apt-get -y install libssh-4
         apt-get -y install libssh-dev
-        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
+        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
             apt-get -y install gcc-11 g++-11
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
+        elif [ "x${DIST}" = "xresolute" ]; then
+            apt-get -y install gcc-13 g++-13
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 --slave /usr/bin/g++ g++ /usr/bin/g++-13 --slave /usr/bin/gcov gcov /usr/bin/gcov-13
         else
             apt-get -y install gcc g++
         fi
