@@ -1311,7 +1311,7 @@ build_deb(){
     #echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
     echo "usr/lib/mysqlsh/libprotobuf-lite.so*" >> debian/install
     echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
-    echo "usr/lib/mysqlsh/libg*.so*" >> debian/install
+    #echo "usr/lib/mysqlsh/libg*.so*" >> debian/install
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
     sed -i 's|-DWITH_PROTOBUF=[^ ]*||g' debian/rules
     if [ "x${DEBIAN_VERSION}" = "xjammy" -o "x${DEBIAN_VERSION}" = "xnoble" ]; then
