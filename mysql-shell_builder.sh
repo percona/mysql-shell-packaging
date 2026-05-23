@@ -464,7 +464,11 @@ get_sources(){
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
-        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312"
+        if [ "x${DIST}" = "xresolute" ]; then
+            cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        else
+            cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312"
+        fi
         cd ../../
         cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DPYTHON_INCLUDE_DIRS="/usr/local/python312/include/python3.12" -DPYTHON_LIBRARIES="/usr/local/python312/lib/libpython3.12.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     else
@@ -1222,6 +1226,7 @@ build_source_deb(){
         exit 1
     fi
     #build_ssh
+    apt install libprotobuf-dev protobuf-compiler
     rm -rf mysql-shell*
     get_tar "source_tarball"
     rm -f *.dsc *.orig.tar.gz *.debian.tar.* *.changes
