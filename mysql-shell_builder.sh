@@ -131,6 +131,7 @@ get_cmake(){
 }
 
 get_antlr4-runtime(){
+/*
     cd "${WORKDIR}"
     git clone https://github.com/antlr/antlr4.git
     cd antlr4/runtime/Cpp
@@ -142,9 +143,11 @@ get_antlr4-runtime(){
     chmod a+w /opt/antlr4
     export DESTDIR=/opt/antlr4
     make install
+*/
 }
 
 get_protobuf(){
+/*
     MY_PATH=$(echo $PATH)
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
@@ -187,6 +190,7 @@ get_protobuf(){
     #cp bin/protoc /usr/local/bin
     #cp -r -v include/*-lite* /usr/local/include
     return
+*/
 }
 
 get_database(){
@@ -257,12 +261,12 @@ get_database(){
         #    fi
         #fi
         if [ $RHEL = 6 ]; then
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_ABSEIL=bundled -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
         else
             if [ $RHEL = 10 ]; then
-                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_ABSEIL=bundled -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
             else
-                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_ABSEIL=bundled -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
             fi
         fi
     else
@@ -464,11 +468,13 @@ get_sources(){
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
-        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312"
+        ##cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312"
+        cmake . -DBUNDLED_PYTHON_DIR="/usr/local/python312"
         cd ../../
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DPYTHON_INCLUDE_DIRS="/usr/local/python312/include/python3.12" -DPYTHON_LIBRARIES="/usr/local/python312/lib/libpython3.12.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        #cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DPYTHON_INCLUDE_DIRS="/usr/local/python312/include/python3.12" -DPYTHON_LIBRARIES="/usr/local/python312/lib/libpython3.12.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DPYTHON_INCLUDE_DIRS="/usr/local/python312/include/python3.12" -DPYTHON_LIBRARIES="/usr/local/python312/lib/libpython3.12.so"
     else
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y)
     fi
     sed -i 's/-src//g' CPack*
     cpack -G TGZ --config CPackSourceConfig.cmake
@@ -874,7 +880,8 @@ install_deps() {
         apt-get -y install libldap2-dev libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libsasl2-dev
         apt-get -y install libeatmydata
         apt-get -y install libmecab2 mecab mecab-ipadic libicu-dev
-        apt-get -y install build-essential devscripts doxygen doxygen-gui graphviz rsync libprotobuf-dev protobuf-compiler
+        #apt-get -y install build-essential devscripts doxygen doxygen-gui graphviz rsync libprotobuf-dev protobuf-compiler
+        apt-get -y install build-essential devscripts doxygen doxygen-gui graphviz rsync
         apt-get -y install autotools-dev autoconf automake build-essential devscripts debconf debhelper fakeroot libtool
         apt-get -y install libicu-dev pkg-config zip
         apt-get -y install libtirpc
@@ -882,7 +889,7 @@ install_deps() {
         apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
         apt-get -y install libkrb5-dev
         apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
-        #apt-get -y install libantlr4-runtime-dev
+        apt-get -y install libantlr4-runtime-dev
         apt-get -y install uuid-dev
         apt-get -y install pkg-config
         apt-get -y install libudev-dev
