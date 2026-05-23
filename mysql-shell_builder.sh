@@ -131,7 +131,6 @@ get_cmake(){
 }
 
 get_antlr4-runtime(){
-/*
     cd "${WORKDIR}"
     git clone https://github.com/antlr/antlr4.git
     cd antlr4/runtime/Cpp
@@ -143,11 +142,9 @@ get_antlr4-runtime(){
     chmod a+w /opt/antlr4
     export DESTDIR=/opt/antlr4
     make install
-*/
 }
 
 get_protobuf(){
-/*
     MY_PATH=$(echo $PATH)
     if [ "x$OS" = "xrpm" ]; then
         if [ $RHEL -le 7 ]; then
@@ -190,7 +187,6 @@ get_protobuf(){
     #cp bin/protoc /usr/local/bin
     #cp -r -v include/*-lite* /usr/local/include
     return
-*/
 }
 
 get_database(){
@@ -966,8 +962,8 @@ install_deps() {
         ln -s /usr/local/percona-subunit2junitxml/subunit2junitxml /usr/bin/subunit2junitxml
         cd ${CURPLACE}
     fi
-    get_protobuf
-    get_antlr4-runtime
+    ##get_protobuf
+    ##get_antlr4-runtime
     return;
 }
 
@@ -1172,7 +1168,7 @@ build_rpm(){
     fi
     #get_v8
     get_GraalVM
-    get_protobuf
+    ##get_protobuf
     get_database
     build_oci_sdk
     if [ $RHEL = 7 ]; then
@@ -1187,7 +1183,7 @@ build_rpm(){
         update-alternatives --install /usr/bin/c++ c++ /opt/rh/gcc-toolset-13/root/bin/c++ 90
         update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-13/root/bin/g++ 90
     fi
-    get_antlr4-runtime
+    ##get_antlr4-runtime
     cd ${WORKDIR}
     #
     if [ ${RHEL} = 6 ]; then
@@ -1300,7 +1296,7 @@ build_deb(){
     echo "VERSION=${VERSION}" >> mysql-shell.properties
     #
     dpkg-source -x ${DSC}
-    get_protobuf
+    ##get_protobuf
     get_database
     #get_v8
     get_GraalVM
