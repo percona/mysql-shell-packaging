@@ -136,7 +136,7 @@ get_antlr4-runtime(){
     cd antlr4/runtime/Cpp
     git checkout 4.13.2
     mkdir -p build && mkdir -p run && cd build
-    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=ON
+    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=ON -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-rpath,\$ORIGIN -Wl,--enable-new-dtags"
     make -j8
     mkdir -p /opt/antlr4
     chmod a+w /opt/antlr4
@@ -1329,7 +1329,7 @@ build_deb(){
     fi
     sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
     #sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf-lite* debian/tmp/usr/lib/mysqlsh\n\tcp -a -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
-    sed -i 's@^\tdh_install $@&\n\t# Ensure private libs can find each other at runtime\n\tfor lib in debian/percona-mysql-shell$(PRODUCT_SUFFIX)/usr/lib/mysqlsh/lib*.so*; do \\\n\t  [ -f "$$lib" ] \&\& patchelf --set-rpath '"'"'$$ORIGIN'"'"' "$$lib" || true; \\\n\tdone@' debian/rules
+    sed -i 's@^\tdh_install $@&\n\t# Ensure private libs can find each other at runtime\n\tfor lib in debian/percona-mysql-shell$(PRODUCT_SUFFIX)/usr/lib/mysqlsh/lib*.so*; do \\\n\t  [ -f "$$lib" ] \&\& [ ! -L "$$lib" ] \&\& ! readelf -d "$$lib" 2>/dev/null | grep -qE '"'"'R(UN)?PATH'"'"' \&\& patchelf --set-rpath '"'"'$$ORIGIN'"'"' "$$lib" || true; \\\n\tdone@' debian/rules
     #sed -i 's|override_dh_install:|\tcp -a -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     #sed -i 's|override_dh_install:|\tcp -a -v /opt/antlr4/usr/local/lib/libg* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
