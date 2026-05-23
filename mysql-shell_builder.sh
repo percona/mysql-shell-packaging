@@ -136,7 +136,7 @@ get_antlr4-runtime(){
     cd antlr4/runtime/Cpp
     git checkout 4.13.2
     mkdir -p build && mkdir -p run && cd build
-    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=ON
     make -j8
     mkdir -p /opt/antlr4
     chmod a+w /opt/antlr4
