@@ -464,7 +464,7 @@ get_sources(){
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
-        if [ "x${DIST}" = "xresolute" ]; then
+        if [ "x${OS_NAME}" = "xresolute" ]; then
             cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         else
             cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312"
