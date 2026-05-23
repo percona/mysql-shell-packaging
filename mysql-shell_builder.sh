@@ -1331,7 +1331,7 @@ build_deb(){
     #sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf-lite* debian/tmp/usr/lib/mysqlsh\n\tcp -a -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's@^\tdh_install $@&\n\t# Ensure private libs can find each other at runtime\n\tfor lib in debian/percona-mysql-shell$(PRODUCT_SUFFIX)/usr/lib/mysqlsh/lib*.so*; do \\\n\t  [ -f "$$lib" ] \&\& patchelf --set-rpath '"'"'$$ORIGIN'"'"' "$$lib" || true; \\\n\tdone@' debian/rules
     #sed -i 's|override_dh_install:|\tcp -a -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
-    sed -i 's|override_dh_install:|\tcp -a -v /opt/antlr4/usr/local/lib/libg* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
+    #sed -i 's|override_dh_install:|\tcp -a -v /opt/antlr4/usr/local/lib/libg* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
     grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
@@ -1479,7 +1479,6 @@ build_tarball(){
     chmod +x ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
     cd ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
     patchelf --set-rpath '$ORIGIN' lib/mysqlsh/libabsl_*
-    patchelf --set-rpath '$ORIGIN' lib/mysqlsh/libg*
     ln -s bin libexec
     cd ..
     tar -zcvf ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
