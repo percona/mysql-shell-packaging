@@ -1474,6 +1474,9 @@ build_tarball(){
         cp -r lib ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
     fi
     LIB_DIR=$([ -d /usr/local/lib64 ] && echo /usr/local/lib64 || echo /usr/local/lib)
+    if [ -f /etc/redhat-release ]; then
+        cp -a /usr/lib64/libicu* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
+    fi
     #cp -a ${LIB_DIR}/libprotobuf-lite.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     #cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     chmod +x ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
