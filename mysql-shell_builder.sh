@@ -220,9 +220,9 @@ get_database(){
         if [[ $RHEL = 8 && ${SHELL_BRANCH:2:1} = 1 ]]; then
             sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
         fi
-        #if [[ $RHEL = 9 && ${SHELL_BRANCH:0:1} = 9 ]]; then
-        #    sed -i 's:gcc-toolset-14:gcc-toolset-13:g' CMakeLists.txt
-        #fi
+        if [[ $RHEL = 9 && ${SHELL_BRANCH:0:1} = 9 ]]; then
+            sed -i 's:gcc-toolset-14:gcc-toolset-13:g' CMakeLists.txt
+        fi
         if [ "x$OS_NAME" = "xnoble" ]; then
             sed -i 's:D_FORTIFY_SOURCE=2:D_FORTIFY_SOURCE=3:g' CMakeLists.txt
         fi
