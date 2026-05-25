@@ -1401,8 +1401,8 @@ build_tarball(){
         if [ $RHEL = 9 -o $RHEL = 10 ]; then
             source /opt/rh/gcc-toolset-12/enable
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
-                -DCMAKE_BUILD_TYPE=RelWithDebInfo
-                -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic"
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic" \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
@@ -1436,8 +1436,8 @@ build_tarball(){
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
-                -DCMAKE_BUILD_TYPE=RelWithDebInfo
-                -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic"
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic" \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
