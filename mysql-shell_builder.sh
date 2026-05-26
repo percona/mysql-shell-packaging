@@ -873,27 +873,7 @@ install_deps() {
         apt-get -y install psmisc
         apt-get -y install libsasl2-modules:amd64 || apt-get -y install libsasl2-modules
         apt-get -y install dh-systemd || true
-        apt-get -y install curl bison cmake perl libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk
-        apt-get -y install lsb-release libmecab-dev libncurses5-dev libreadline-dev libpam-dev zlib1g-dev libcurl4-openssl-dev
-        apt-get -y install libldap2-dev libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libsasl2-dev
-        apt-get -y install libeatmydata
-        apt-get -y install libmecab2 mecab mecab-ipadic libicu-dev
-        #apt-get -y install build-essential devscripts doxygen doxygen-gui graphviz rsync libprotobuf-dev protobuf-compiler
-        apt-get -y install build-essential devscripts doxygen doxygen-gui graphviz rsync
-        apt-get -y install autotools-dev autoconf automake build-essential devscripts debconf debhelper fakeroot libtool
-        apt-get -y install libicu-dev pkg-config zip
-        apt-get -y install libtirpc
-        apt-get -y install patchelf
-        apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
-        apt-get -y install libkrb5-dev
-        apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
-        apt-get -y install libantlr4-runtime-dev
-        apt-get -y install uuid-dev
-        apt-get -y install pkg-config
-        apt-get -y install libudev-dev
-        apt-get -y install libbsd-dev
-        apt-get -y install libssh-4
-        apt-get -y install libssh-dev
+        apt-get -y install curl bison cmake perl libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk lsb-release libmecab-dev libncurses5-dev libreadline-dev libpam-dev zlib1g-dev libcurl4-openssl-dev libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libsasl2-dev libeatmydata libmecab2 mecab mecab-ipadic libicu-dev build-essential devscripts doxygen doxygen-gui graphviz rsync autotools-dev autoconf automake debconf debhelper fakeroot libtool pkg-config zip libtirpc patchelf libsasl2-modules-gssapi-mit libkrb5-dev libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++ libantlr4-runtime-dev uuid-dev libudev-dev libbsd-dev libssh-4 libssh-dev binutils
         if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install gcc-11 g++-11
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
@@ -1456,6 +1436,8 @@ build_tarball(){
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic" \
             -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
             -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
             -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
@@ -1471,6 +1453,7 @@ build_tarball(){
             -DPYTHON_LIBRARIES=/usr/local/python312/lib/libpython3.12.so
     fi
     make -j4
+    strip --strip-debug bin/mysqlsh
     mkdir ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
     cp -r bin ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
     cp -r share ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
