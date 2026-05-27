@@ -1453,7 +1453,7 @@ build_tarball(){
             -DPYTHON_LIBRARIES=/usr/local/python312/lib/libpython3.12.so
     fi
     make -j4
-    strip --strip-debug bin/mysqlsh
+    strip -v --strip-debug bin/mysqlsh
     mkdir ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
     cp -r bin ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
     cp -r share ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
