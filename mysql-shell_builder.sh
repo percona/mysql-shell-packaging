@@ -1367,6 +1367,11 @@ build_tarball(){
     DIRNAME="tarball"
     mkdir bld
     cd bld
+    if [ "${ARCH}" = "x86_64" ]; then
+        EXTRA_CXX_FLAGS="-march=x86-64-v2 -mtune=generic"
+    elif [ "${ARCH}" = "aarch64" ]; then
+        EXTRA_CXX_FLAGS="-march=armv8-a+crc -mtune=generic -moutline-atomics"
+    fi
     if [ -f /etc/redhat-release ]; then
         if [ $RHEL = 7 ]; then
             source /opt/rh/devtoolset-11/enable
@@ -1382,7 +1387,7 @@ build_tarball(){
             source /opt/rh/gcc-toolset-12/enable
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic" \
+                -DCMAKE_CXX_FLAGS_INIT="-O2 ${EXTRA_CXX_FLAGS}" \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
@@ -1417,7 +1422,7 @@ build_tarball(){
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic" \
+                -DCMAKE_CXX_FLAGS_INIT="-O2 ${EXTRA_CXX_FLAGS}" \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
@@ -1437,7 +1442,7 @@ build_tarball(){
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DCMAKE_CXX_FLAGS_INIT="-O2 -march=x86-64-v2 -mtune=generic" \
+            -DCMAKE_CXX_FLAGS_INIT="-O2 ${EXTRA_CXX_FLAGS}" \
             -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
             -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
             -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
@@ -1454,24 +1459,24 @@ build_tarball(){
     fi
     make -j4
     strip -v --strip-debug bin/mysqlsh
-    mkdir ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
-    cp -r bin ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
-    cp -r share ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
+    mkdir ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
+    cp -r bin ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/
+    cp -r share ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/
     if [ -d lib ]; then
-        cp -r lib ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
+        cp -r lib ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/
     fi
     LIB_DIR=$([ -d /usr/local/lib64 ] && echo /usr/local/lib64 || echo /usr/local/lib)
     if [ -f /etc/redhat-release ]; then
-        cp -a /usr/lib64/libicu* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
+        cp -a /usr/lib64/libicu* ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/lib/mysqlsh/
     fi
     #cp -a ${LIB_DIR}/libprotobuf-lite.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     #cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
-    chmod +x ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
-    cd ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
+    chmod +x ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
+    cd ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
     patchelf --set-rpath '$ORIGIN' lib/mysqlsh/libabsl_*
     ln -s bin libexec
     cd ..
-    tar -zcvf ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
+    tar -zcvf ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
     mkdir -p ${WORKDIR}/${DIRNAME}
     mkdir -p ${CURDIR}/${DIRNAME}
     cp *.tar.gz ${WORKDIR}/${DIRNAME}
