@@ -317,7 +317,7 @@ get_database(){
         cmake --build . --target mysql_binlog_event_standalone -j$(nproc)
         cp -v ../router/src/routing_guidelines/src/parser.cc router/src/routing_guidelines/src/
     fi
-    patchelf --set-rpath '$ORIGIN' library_output_directory/libprotobuf-lite.so*
+    patchelf --debug --set-rpath '$ORIGIN' library_output_directory/lib*.so*
     cd $WORKDIR
     export PATH=$MY_PATH
     return
@@ -1473,7 +1473,7 @@ build_tarball(){
     #cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
     chmod +x ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
     cd ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
-    patchelf --set-rpath '$ORIGIN' lib/mysqlsh/libabsl_*
+    patchelf --debug --set-rpath '$ORIGIN' lib/mysqlsh/libabsl_*
     ln -s bin libexec
     cd ..
     tar -zcvf ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
