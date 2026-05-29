@@ -262,7 +262,7 @@ get_database(){
             if [ $RHEL = 10 ]; then
                 cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
             else
-                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_PROTOBUF=bundled -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
             fi
         fi
     else
@@ -278,6 +278,9 @@ get_database(){
     cmake --build . --target mysqlxclient -j$(nproc)
     cmake --build . --target mysqlxclient_lite -j$(nproc)
     cmake --build . --target mysqlxmessages_lite -j$(nproc)
+    if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+        cmake --build . --target libprotobuf -j$(nproc)
+    fi
     cmake --build . --target libprotobuf-lite -j$(nproc)
     cmake --build . --target gmock -j$(nproc)
     cmake --build . --target gmock_main -j$(nproc)
