@@ -276,11 +276,11 @@ get_database(){
     cmake --build . --target authentication_oci_client -j$(nproc)
     cmake --build . --target mysqlclient -j$(nproc)
     cmake --build . --target mysqlxclient -j$(nproc)
-    cmake --build . --target mysqlxclient_lite -j$(nproc)
-    cmake --build . --target mysqlxmessages_lite -j$(nproc)
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
         cmake --build . --target libprotobuf -j$(nproc)
     else
+        cmake --build . --target mysqlxclient_lite -j$(nproc)
+        cmake --build . --target mysqlxmessages_lite -j$(nproc)
         cmake --build . --target libprotobuf-lite -j$(nproc)
     fi
     cmake --build . --target gmock -j$(nproc)
