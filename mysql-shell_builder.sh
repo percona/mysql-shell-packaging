@@ -280,8 +280,9 @@ get_database(){
     cmake --build . --target mysqlxmessages_lite -j$(nproc)
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
         cmake --build . --target libprotobuf -j$(nproc)
+    else
+        cmake --build . --target libprotobuf-lite -j$(nproc)
     fi
-    cmake --build . --target libprotobuf-lite -j$(nproc)
     cmake --build . --target gmock -j$(nproc)
     cmake --build . --target gmock_main -j$(nproc)
     cmake --build . -j$(nproc) --target \
@@ -1169,6 +1170,8 @@ build_rpm(){
         update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-13/root/bin/g++ 90
     fi
     get_antlr4-runtime
+    find / \
+     -name 'libprotobuf*' -type f -printf '%p\t%s bytes\t%TY-%Tm-%Td %TH:%TM\n'
     cd ${WORKDIR}
     #
     if [ ${RHEL} = 6 ]; then
