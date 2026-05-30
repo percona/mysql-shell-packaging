@@ -1122,7 +1122,9 @@ build_srpm(){
     sed -i "s:prompt/::" mysql-shell.spec
     sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf | grep -v absl); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
     #sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf-lite.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp -a /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
-    sed -i 's:%files:%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*:' mysql-shell.spec
+    if [ ${SHELL_BRANCH:2:1} != 0 ]; then
+        sed -i 's:%files:%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*:' mysql-shell.spec
+    fi
     #sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf-lite.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
     sed -i "s|%files|%if 0%{?rhel} > 7 \|\| 0%{?amzn} >= 2023\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
@@ -1329,10 +1331,10 @@ build_deb(){
     sed -i '/-DCMAKE/,/j8/d' debian/rules
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
-    #echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
-    echo "usr/lib/mysqlsh/libprotobuf-lite.so*" >> debian/install
-    echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
-    #echo "usr/lib/mysqlsh/libg*.so*" >> debian/install
+    if [ ${SHELL_BRANCH:2:1} != 0 ]; then
+        echo "usr/lib/mysqlsh/libprotobuf-lite.so*" >> debian/install
+        echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
+    fi
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
     sed -i 's|-DWITH_PROTOBUF=[^ ]*||g' debian/rules
     if [ "x${DEBIAN_VERSION}" = "xjammy" -o "x${DEBIAN_VERSION}" = "xnoble" ]; then
