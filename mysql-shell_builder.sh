@@ -260,13 +260,48 @@ get_database(){
             cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
         else
             if [ $RHEL = 10 ]; then
-                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake ..   -DBUILD_SHARED_LIBS=OFF \
+                    -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                    -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+                    -DENABLE_DOWNLOADS=1 \
+                    -DWITH_SSL=system \
+                    -DWITH_ABSEIL=bundled \
+                    -DWITH_BOOST=$WORKDIR/boost \
+                    -DWITH_ZLIB=bundled \
+                    -DWITH_COREDUMPER=OFF \
+                    -DWITH_CURL=system \
+                    -DALLOW_NO_SSE42=1 \
+                    -DWITH_ADMINAPI=OFF
             else
-                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_PROTOBUF=bundled -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake ..   -DBUILD_SHARED_LIBS=OFF \
+                    -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                    -DENABLE_DOWNLOADS=1 \
+                    -DWITH_SSL=system \
+                    -DWITH_PROTOBUF=bundled \
+                    -DWITH_ABSEIL=bundled \
+                    -DWITH_BOOST=$WORKDIR/boost \
+                    -DWITH_ZLIB=bundled \
+                    -DWITH_COREDUMPER=OFF \
+                    -DWITH_CURL=system \
+                    -DALLOW_NO_SSE42=1 \
+                    -DWITH_ADMINAPI=OFF
             fi
         fi
     else
-        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_ABSEIL=bundled -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+        cmake .. -DBUILD_SHARED_LIBS=OFF \
+            -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DENABLE_DOWNLOADS=1 \
+            -DWITH_SSL=system \
+            -DWITH_BOOST=$WORKDIR/boost \
+            -DWITH_ABSEIL=bundled \
+            -DWITH_ZLIB=bundled \
+            -DWITH_COREDUMPER=OFF \
+            -DWITH_CURL=system \
+            -DALLOW_NO_SSE42=1 \
+            -DWITH_ADMINAPI=OFF
     fi
 
     #if [ "x$OS_NAME" = "xresolute" ]; then
