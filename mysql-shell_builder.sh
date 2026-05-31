@@ -1113,7 +1113,7 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_EXE_LINKER_FLAGS=\"-Wl,--as-needed -fno-lto\" -DCMAKE_SHARED_LINKER_FLAGS=\"-Wl,--as-needed -fno-lto\" DCMAKE_MODULE_LINKER_FLAGS=\"-Wl,--as-needed -fno-lto\" -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF_LITE=ON -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_EXE_LINKER_FLAGS=\"-Wl,--as-needed \-Wno-error=maybe-uninitialized -Wno-maybe-uninitialized" -DCMAKE_SHARED_LINKER_FLAGS=\"-Wl,--as-needed -Wno-error=maybe-uninitialized -Wno-maybe-uninitialized\" DCMAKE_MODULE_LINKER_FLAGS=\"-Wl,--as-needed -Wno-error=maybe-uninitialized -Wno-maybe-uninitialized\" -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF_LITE=ON -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
     sed -i 's|-DWITH_PROTOBUF=[^ ]*||g' mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7 \|\|  0%{?amzn} >= 2023\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
     sed -i '/^# Dependencies for the cloud version/i Requires:       libicu mysql-shell.spec'
