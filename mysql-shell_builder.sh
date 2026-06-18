@@ -134,9 +134,9 @@ get_antlr4-runtime(){
     cd "${WORKDIR}"
     git clone https://github.com/antlr/antlr4.git
     cd antlr4/runtime/Cpp
-    git checkout v4.10.1
+    git checkout 4.13.2
     mkdir -p build && mkdir -p run && cd build
-    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
+    cmake .. -DANTLR4_INSTALL=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SHARED_LIBS=ON -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-rpath,\$ORIGIN -Wl,--enable-new-dtags"
     make -j8
     mkdir -p /opt/antlr4
     chmod a+w /opt/antlr4
@@ -184,8 +184,8 @@ get_protobuf(){
         wget -nv https://github.com/protocolbuffers/protobuf/releases/download/v24.4/protoc-24.4-linux-x86_64.zip
         unzip protoc-24.4-linux-x86_64.zip
     fi
-    cp bin/protoc /usr/local/bin
-    cp -r include/* /usr/local/include
+    #cp bin/protoc /usr/local/bin
+    #cp -r -v include/*-lite* /usr/local/include
     return
 }
 
@@ -220,11 +220,14 @@ get_database(){
         if [[ $RHEL = 8 && ${SHELL_BRANCH:2:1} = 1 ]]; then
             sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
         fi
-        if [[ $RHEL = 9 && ${SHELL_BRANCH:0:1} = 9 ]]; then
-            sed -i 's:gcc-toolset-14:gcc-toolset-13:g' CMakeLists.txt
-        fi
+        #if [[ $RHEL = 9 && ${SHELL_BRANCH:0:1} = 9 ]]; then
+        #    sed -i 's:gcc-toolset-14:gcc-toolset-13:g' CMakeLists.txt
+        #fi
         if [ "x$OS_NAME" = "xnoble" ]; then
             sed -i 's:D_FORTIFY_SOURCE=2:D_FORTIFY_SOURCE=3:g' CMakeLists.txt
+        fi
+        if [ "x$OS_NAME" = "xresolute" ]; then
+            export DEB_CPPFLAGS_STRIP="-D_FORTIFY_SOURCE=3"
         fi
         if [ ${SHELL_BRANCH:0:1} = 9 ]; then
             pushd router/src/routing_guidelines/src
@@ -254,36 +257,106 @@ get_database(){
         #    fi
         #fi
         if [ $RHEL = 6 ]; then
-            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
+            cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
         else
             if [ $RHEL = 10 ]; then
-                cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake ..   -DBUILD_SHARED_LIBS=OFF \
+                    -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                    -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+                    -DENABLE_DOWNLOADS=1 \
+                    -DWITH_SSL=system \
+                    -DWITH_ABSEIL=bundled \
+                    -DWITH_BOOST=$WORKDIR/boost \
+                    -DWITH_ZLIB=bundled \
+                    -DWITH_COREDUMPER=OFF \
+                    -DWITH_CURL=system \
+                    -DALLOW_NO_SSE42=1 \
+                    -DWITH_ADMINAPI=OFF
             else
-                cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -Dantlr4-runtime_DIR=/opt/antlr4/usr/local/lib64/cmake/antlr4-runtime -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+                cmake ..   -DBUILD_SHARED_LIBS=OFF \
+                    -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                    -DENABLE_DOWNLOADS=1 \
+                    -DWITH_SSL=system \
+                    -DWITH_PROTOBUF=bundled \
+                    -DWITH_ABSEIL=bundled \
+                    -DWITH_BOOST=$WORKDIR/boost \
+                    -DWITH_ZLIB=bundled \
+                    -DWITH_COREDUMPER=OFF \
+                    -DWITH_CURL=system \
+                    -DALLOW_NO_SSE42=1 \
+                    -DWITH_ADMINAPI=OFF
             fi
         fi
     else
-        cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=system -DWITH_BOOST=$WORKDIR/boost -DWITH_PROTOBUF=system -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system -DALLOW_NO_SSE42=1 -DWITH_ADMINAPI=OFF
+        cmake .. -DBUILD_SHARED_LIBS=OFF \
+            -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DENABLE_DOWNLOADS=1 \
+            -DWITH_SSL=system \
+            -DWITH_BOOST=$WORKDIR/boost \
+            -DWITH_ABSEIL=bundled \
+            -DWITH_ZLIB=bundled \
+            -DWITH_COREDUMPER=OFF \
+            -DWITH_CURL=system \
+            -DALLOW_NO_SSE42=1 \
+            -DWITH_ADMINAPI=OFF
     fi
 
-    cmake --build . --target authentication_oci_client
-    cmake --build . --target mysqlclient
-    cmake --build . --target mysqlxclient
+    #if [ "x$OS_NAME" = "xresolute" ]; then
+    #    sed -i '/FILE(GLOB BUNDLED_ABSEIL_LIBRARIES/a\    list(APPEND PROTOBUF_LIBRARIES ${BUNDLED_ABSEIL_LIBRARIES})'   ../cmake/protobuf.cmake
+    #fi
+
+    cmake --build . --target authentication_oci_client -j$(nproc)
+    cmake --build . --target mysqlclient -j$(nproc)
+    cmake --build . --target mysqlxclient -j$(nproc)
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
-        cmake --build . --target authentication_fido_client
+        cmake --build . --target libprotobuf -j$(nproc)
+    else
+        cmake --build . --target mysqlxclient_lite -j$(nproc)
+        cmake --build . --target mysqlxmessages_lite -j$(nproc)
+        cmake --build . --target libprotobuf-lite -j$(nproc)
     fi
-    cmake --build . --target authentication_ldap_sasl_client
-    cmake --build . --target authentication_kerberos_client
+    cmake --build . --target gmock -j$(nproc)
+    cmake --build . --target gmock_main -j$(nproc)
+    cmake --build . -j$(nproc) --target \
+        absl_bad_optional_access absl_bad_variant_access absl_base absl_city \
+        absl_civil_time absl_cord absl_cord_internal absl_cordz_functions \
+        absl_cordz_handle absl_cordz_info absl_crc32c absl_crc_cord_state \
+        absl_crc_cpu_detect absl_crc_internal absl_debugging_internal \
+        absl_demangle_internal absl_die_if_null absl_examine_stack \
+        absl_exponential_biased absl_flags absl_flags_commandlineflag \
+        absl_flags_commandlineflag_internal absl_flags_config absl_flags_internal \
+        absl_flags_marshalling absl_flags_private_handle_accessor \
+        absl_flags_program_name absl_flags_reflection absl_graphcycles_internal \
+        absl_hash absl_hashtablez_sampler absl_int128 absl_leak_check \
+        absl_log_entry absl_log_globals absl_log_initialize \
+        absl_log_internal_check_op absl_log_internal_conditions \
+        absl_log_internal_format absl_log_internal_globals \
+        absl_log_internal_log_sink_set absl_log_internal_message \
+        absl_log_internal_nullguard absl_log_internal_proto absl_log_severity \
+        absl_log_sink absl_low_level_hash absl_malloc_internal absl_raw_hash_set \
+        absl_raw_logging_internal absl_spinlock_wait absl_stacktrace absl_status \
+        absl_statusor absl_str_format_internal absl_strerror absl_strings \
+        absl_strings_internal absl_symbolize absl_synchronization \
+        absl_throw_delegate absl_time absl_time_zone
+    if [ ${SHELL_BRANCH:2:1} = 0 ]; then
+        cmake --build . --target authentication_fido_client -j$(nproc)
+    fi
+    cmake --build . --target authentication_ldap_sasl_client -j$(nproc)
+    cmake --build . --target authentication_kerberos_client -j$(nproc)
     if [ ${SHELL_BRANCH:2:1} != 0 ]; then
-        cmake --build . --target authentication_webauthn_client
+        cmake --build . --target authentication_webauthn_client -j$(nproc)
     fi
     if [ ${SHELL_BRANCH:0:1} = 9 ]; then
-        cmake --build . --target authentication_openid_connect_client
-        cmake --build . --target mysql_native_password
-        cmake --build . --target mysqlbinlog
-        cmake --build . --target mysql_binlog_event_standalone
+        cmake --build . --target authentication_openid_connect_client -j$(nproc)
+        cmake --build . --target mysql_native_password -j$(nproc)
+        cmake --build . --target mysqlbinlog -j$(nproc)
+        cmake --build . --target mysql_binlog_event_standalone -j$(nproc)
         cp -v ../router/src/routing_guidelines/src/parser.cc router/src/routing_guidelines/src/
     fi
+    patchelf --debug --set-rpath '$ORIGIN' library_output_directory/lib*.so*
     cd $WORKDIR
     export PATH=$MY_PATH
     return
@@ -385,6 +458,14 @@ get_sources(){
         git reset --hard
         git clean -xdf
         git checkout tags/"$SHELL_BRANCH"
+        if [[ ${SHELL_BRANCH:0:1} = 9 ]]; then
+            #curl -L https://github.com/kamil-holubicki/mysql-shell/pull/2.patch -o PS-10413.patch
+            #curl -L https://github.com/kamil-holubicki/mysql-shell/compare/9.6...PS-10413_and_PS-10416.patch -o PS-10413.patch
+            curl -L https://github.com/mysql/mysql-shell/compare/9.7...kamil-holubicki:mysql-shell:PS-10413_and_PS-10416_9.7.patch -o PS-10413.patch
+            git apply --stat PS-10413.patch
+            patch -p1 -N --fuzz=3 < PS-10413.patch
+            git diff mysqlshdk/libs/storage/backend/object_storage_bucket.cc
+        fi
     fi
     if [ -z "${DESTINATION:-}" ]; then
         export DESTINATION=experimental
@@ -422,11 +503,15 @@ get_sources(){
     
     if [ "x$OS" = "xdeb" ]; then
         cd packaging/debian/
-        cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312"
+        if [ "x${OS_NAME}" = "xresolute" ]; then
+            cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        else
+            cmake . -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local" -DBUNDLED_PYTHON_DIR="/usr/local/python312"
+        fi
         cd ../../
         cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DHAVE_PYTHON=1 -DBUNDLED_PYTHON_DIR="/usr/local/python312" -DPYTHON_INCLUDE_DIRS="/usr/local/python312/include/python3.12" -DPYTHON_LIBRARIES="/usr/local/python312/lib/libpython3.12.so" -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
     else
-        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y) -DBUNDLED_ANTLR_DIR="/opt/antlr4/usr/local"
+        cmake . -DBUILD_SOURCE_PACKAGE=1 -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SSL=system -DPACKAGE_YEAR=$(date +%Y)
     fi
     sed -i 's/-src//g' CPack*
     cpack -G TGZ --config CPackSourceConfig.cmake
@@ -451,7 +536,7 @@ build_oci_sdk(){
     fi
     . oci_sdk/bin/activate
     if [ "x$OS" = "xdeb" ]; then
-        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" ]; then
+        if [ "x${DIST}" = "xbuster" -o "x${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             pip3 install -r requirements.txt
             pip3 install -e .
         else
@@ -572,7 +657,7 @@ build_python(){
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib > /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     bash -c "echo /usr/local/python3${arraypversion[1]}/lib64 >> /etc/ld.so.conf.d/python-3.${arraypversion[1]}.conf"
     ldconfig -v
-    if [[ "x$OS_NAME" = "xbookworm" || "x$OS_NAME" = "xnoble" || "x$OS_NAME" = "xtrixie" ]]; then
+    if [[ "x$OS_NAME" = "xbookworm" || "x$OS_NAME" = "xnoble" || "x$OS_NAME" = "xtrixie" || "x$OS_NAME" = "xresolute" ]]; then
         update-alternatives --remove-all python3
         update-alternatives --install /usr/bin/python3 python3 /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} 100
         update-alternatives --remove-all pip3
@@ -596,7 +681,7 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade virtualenv
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install cryptography
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install oci
-    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install setuptools
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install "setuptools>=82.0.0"
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y cffi
     find / -type f -name "*.whl" -exec rm -vf {} \;
@@ -712,11 +797,11 @@ install_deps() {
                     mv /usr/bin/c++ /usr/bin/c++.orig
                     mv /usr/bin/g++ /usr/bin/g++.orig
                     if [ ${SHELL_BRANCH:0:1} = 9 ]; then
-                        yum -y install gcc-toolset-13-gcc gcc-toolset-13-gcc-c++ gcc-toolset-13-binutils gcc-toolset-13-annobin-annocheck gcc-toolset-13-annobin-plugin-gcc
-                        update-alternatives --install /usr/bin/cc cc /opt/rh/gcc-toolset-13/root/bin/cc 80
-                        update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-13/root/bin/gcc 80
-                        update-alternatives --install /usr/bin/c++ c++ /opt/rh/gcc-toolset-13/root/bin/c++ 80
-                        update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-13/root/bin/g++ 80
+                        yum -y install gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ gcc-toolset-14-binutils gcc-toolset-14-annobin-annocheck gcc-toolset-14-annobin-plugin-gcc
+                        update-alternatives --install /usr/bin/cc cc /opt/rh/gcc-toolset-14/root/bin/cc 80
+                        update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-14/root/bin/gcc 80
+                        update-alternatives --install /usr/bin/c++ c++ /opt/rh/gcc-toolset-14/root/bin/c++ 80
+                        update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-14/root/bin/g++ 80
                     else
                         yum -y install gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc
                         update-alternatives --install /usr/bin/cc cc /opt/rh/gcc-toolset-12/root/bin/cc 80
@@ -814,7 +899,7 @@ install_deps() {
         apt-get update
         sleep 20
         apt-get -y install dirmngr || true
-        apt-get -y install lsb-release wget curl gnupg2
+        apt-get -y install lsb-release wget curl gnupg2 git
         wget --no-check-certificate https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
         percona-release enable tools testing
         export DEBIAN_FRONTEND="noninteractive"
@@ -827,36 +912,17 @@ install_deps() {
         apt-get -y install psmisc
         apt-get -y install libsasl2-modules:amd64 || apt-get -y install libsasl2-modules
         apt-get -y install dh-systemd || true
-        apt-get -y install curl bison cmake perl libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk
-        apt-get -y install lsb-release libmecab-dev libncurses5-dev libreadline-dev libpam-dev zlib1g-dev libcurl4-openssl-dev
-        apt-get -y install libldap2-dev libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libsasl2-dev
-        apt-get -y install libeatmydata
-        apt-get -y install libmecab2 mecab mecab-ipadic libicu-dev
-        apt-get -y install build-essential devscripts doxygen doxygen-gui graphviz rsync libprotobuf-dev protobuf-compiler
-        apt-get -y install autotools-dev autoconf automake build-essential devscripts debconf debhelper fakeroot libtool
-        apt-get -y install libicu-dev pkg-config zip
-        apt-get -y install libtirpc
-        apt-get -y install patchelf
-        apt-get -y install libsasl2-dev libsasl2-modules-gssapi-mit
-        apt-get -y install libkrb5-dev
-        apt-get -y install libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++
-        apt-get -y install libantlr4-runtime-dev
-        apt-get -y install uuid-dev
-        apt-get -y install pkg-config
-        apt-get -y install libudev-dev
-        apt-get -y install libbsd-dev
-        apt-get -y install libssh-4
-        apt-get -y install libssh-dev
-        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
-            apt-get -y install gcc-10 g++-10
-            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+        apt-get -y install curl bison cmake perl libaio-dev libldap2-dev libwrap0-dev gdb unzip gawk lsb-release libmecab-dev libncurses5-dev libreadline-dev libpam-dev zlib1g-dev libcurl4-openssl-dev libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libsasl2-dev libmecab2 mecab mecab-ipadic libicu-dev build-essential devscripts doxygen doxygen-gui graphviz rsync autotools-dev autoconf automake debconf debhelper fakeroot libtool pkg-config zip patchelf libsasl2-modules-gssapi-mit libkrb5-dev libz-dev libgcrypt-dev libssl-dev libcmocka-dev g++ libantlr4-runtime-dev uuid-dev libudev-dev libbsd-dev libssh-4 libssh-dev binutils
+        if [ x"${DIST}" = "xfocal" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
+            apt-get -y install gcc-11 g++-11
+            update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
         else
             apt-get -y install gcc g++
         fi
         if [ "x${DIST}" = "xbullseye" ]; then
             apt-get -y install libssh2-1-dev
         fi
-        if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" ]; then
+        if [ "x${DIST}" = "xbookworm" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install python3-virtualenv libtirpc-dev
         fi
         if [ "x${DIST}" = "xstretch" ]; then
@@ -865,7 +931,7 @@ install_deps() {
             apt-get -y install gcc-4.9 g++-4.9
             sed -i 's;deb http://ftp.us.debian.org/debian/ jessie main contrib non-free;;' /etc/apt/sources.list
             apt-get update
-        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
+        elif [ "x${DIST}" = "xfocal" -o "x${DIST}" = "xjammy" -o "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install python3-mysqldb
         else
             apt-get -y install python-mysqldb
@@ -877,7 +943,7 @@ install_deps() {
         apt-get -y install python3-dev || true
         apt-get -y install libffi-dev || true
         PIP_UTIL="pip3"
-        if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" ]; then
+        if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install pipx
             PIP_UTIL="pipx"
         fi
@@ -917,7 +983,7 @@ install_deps() {
         ln -s /usr/local/percona-subunit2junitxml/subunit2junitxml /usr/bin/subunit2junitxml
         cd ${CURPLACE}
     fi
-    get_protobuf
+    ##get_protobuf
     get_antlr4-runtime
     return;
 }
@@ -1036,7 +1102,8 @@ build_srpm(){
     sed -i 's|https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz|%{name}-@MYSH_VERSION@.tar.gz|' mysql-shell.spec
     sed -i 's|%{name}-@MYSH_VERSION@-src|%{name}-@MYSH_VERSION@|' mysql-shell.spec
     sed -i 's|%setup -q -n %{name}-|%setup -q -n mysql-shell-|' mysql-shell.spec
-    sed -i '/with_protobuf/,/endif/d' mysql-shell.spec
+    #sed -i '/with_protobuf/,/endif/d' mysql-shell.spec
+    #sed -i 's|_protobuflibs libprotobuf|_protobuflibs libprotobuf-lite|g' mysql-shell.spec
     sed -i 's/@COMMERCIAL_VER@/0/g' mysql-shell.spec
     sed -i 's/@CLOUD_VER@/0/g' mysql-shell.spec
     sed -i 's/@PRODUCT_SUFFIX@//g' mysql-shell.spec
@@ -1046,14 +1113,19 @@ build_srpm(){
     sed -i 's/@PRODUCT@/MySQL Shell/' mysql-shell.spec
     sed -i "s/@MYSH_VERSION@/${SHELL_BRANCH}/g" mysql-shell.spec
     sed -i 's:1%{?dist}:1%{?dist}:g'  mysql-shell.spec
-    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF=system -DPROTOBUF_INCLUDE_DIRS=/usr/local/include -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
+    sed -i "s:-DHAVE_PYTHON=1:-DHAVE_PYTHON=2 -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF -DCMAKE_EXE_LINKER_FLAGS=\"-Wl,--as-needed -Wno-error=maybe-uninitialized -Wno-maybe-uninitialized\" -DCMAKE_SHARED_LINKER_FLAGS=\"-Wl,--as-needed -Wno-error=maybe-uninitialized -Wno-maybe-uninitialized\" -DCMAKE_MODULE_LINKER_FLAGS=\"-Wl,--as-needed -Wno-error=maybe-uninitialized -Wno-maybe-uninitialized\" -DCMAKE_CXX_FLAGS_INIT=\"-Wno-error=stringop-overflow -Wno-error=maybe-uninitialized -Wno-odr\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DWITH_PROTOBUF_LITE=ON -DWITH_STATIC_LINKING=ON -DMYSQL_EXTRA_LIBRARIES='-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata' -DUSE_LD_GOLD=0 :" mysql-shell.spec
+    sed -i 's|-DWITH_PROTOBUF=[^ ]*||g' mysql-shell.spec
     sed -i "s|BuildRequires:  python-devel|%if 0%{?rhel} > 7 \|\|  0%{?amzn} >= 2023\nBuildRequires:  python2-devel\n%else\nBuildRequires:  python-devel\n%endif|" mysql-shell.spec
+    sed -i '/^# Dependencies for the cloud version/i Requires:       libicu mysql-shell.spec'
     sed -i 's:>= 0.9.2::' mysql-shell.spec
     sed -i 's:libssh-devel:gcc:' mysql-shell.spec
     sed -i "s:prompt/::" mysql-shell.spec
-    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
-    sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
-    sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
+    sed -i 's:%files:for file in $(ls -Ap %{buildroot}/usr/lib/mysqlsh/ | grep -v / | grep -v libpython | grep -v libantlr4-runtime | grep -v libfido | grep -v protobuf | grep -v absl); do rm %{buildroot}/usr/lib/mysqlsh/$file; done\nif [[ -f "/opt/antlr4/usr/local/lib64/libantlr4-runtime.so" ]]; then cp /opt/antlr4/usr/local/lib64/libantlr4-runtime.s* %{buildroot}/usr/lib/mysqlsh/; fi\nif [[ -f "/tmp/polyglot-nativeapi-native-library/libjitexecutor.so" ]]; then cp /tmp/polyglot-nativeapi-native-library/libjitexecutor.so %{buildroot}/usr/lib/mysqlsh/; fi\n%files:' mysql-shell.spec
+    #sed -i 's:%files:if [[ -f "/usr/local/lib64/libprotobuf-lite.so" ]]; then cp /usr/local/lib64/libprotobuf* %{buildroot}/usr/lib/mysqlsh/; cp -a /usr/local/lib64/libabsl_* %{buildroot}/usr/lib/mysqlsh/; cp /usr/local/lib64/libgmock* %{buildroot}/usr/lib/mysqlsh/; fi\n%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*\n%{_prefix}/lib/mysqlsh/libgmock*:' mysql-shell.spec
+    if [ ${SHELL_BRANCH:2:1} != 0 ]; then
+        sed -i 's:%files:%files\n%{_prefix}/lib/mysqlsh/libprotobuf*\n%{_prefix}/lib/mysqlsh/libabsl_*:' mysql-shell.spec
+    fi
+    #sed -i 's:%global __requires_exclude ^(:%global _protobuflibs libprotobuf-lite.*|libabsl_.*|libgmock.*\n%global __requires_exclude ^(%{_protobuflibs}|:' mysql-shell.spec
     sed -i "s|%files|%if 0%{?rhel} > 7 \|\| 0%{?amzn} >= 2023\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/lib2to3/tests/data/*.py\n sed -i 's:/usr/bin/env python$:/usr/bin/env python3:' %{buildroot}/usr/lib/mysqlsh/lib/python3.*/encodings/rot_13.py\n%endif\n\n%files|" mysql-shell.spec
     sed -i "s:%undefine _missing_build_ids_terminate_build:%define _build_id_links none\n%undefine _missing_build_ids_terminate_build:" mysql-shell.spec
     #sed -i 's:%{?_smp_mflags}:VERBOSE=1:g' mysql-shell.spec # if a one thread is required 
@@ -1119,7 +1191,7 @@ build_rpm(){
     fi
     #get_v8
     get_GraalVM
-    get_protobuf
+    ##get_protobuf
     get_database
     build_oci_sdk
     if [ $RHEL = 7 ]; then
@@ -1135,6 +1207,8 @@ build_rpm(){
         update-alternatives --install /usr/bin/g++ g++ /opt/rh/gcc-toolset-13/root/bin/g++ 90
     fi
     get_antlr4-runtime
+    find / \
+     -name 'libprotobuf*' -type f -printf '%p\t%s bytes\t%TY-%Tm-%Td %TH:%TM\n'
     cd ${WORKDIR}
     #
     if [ ${RHEL} = 6 ]; then
@@ -1175,6 +1249,7 @@ build_source_deb(){
         exit 1
     fi
     #build_ssh
+    apt -y install libprotobuf-dev protobuf-compiler
     rm -rf mysql-shell*
     get_tar "source_tarball"
     rm -f *.dsc *.orig.tar.gz *.debian.tar.* *.changes
@@ -1245,27 +1320,30 @@ build_deb(){
     echo "VERSION=${VERSION}" >> mysql-shell.properties
     #
     dpkg-source -x ${DSC}
-    get_protobuf
+    ##get_protobuf
     get_database
     #get_v8
     get_GraalVM
     build_oci_sdk
-    cd ${WORKDIR}/percona-mysql-shell-${SHELL_BRANCH}-${DEB_RELEASE}
+    cd ${WORKDIR}/percona-mysql-shell-${SHELL_BRANCH}-1
     sed -i 's:3.8:3.6:' CMakeLists.txt
     sed -i 's/make -j8/make -j8\n\t/' debian/rules
     sed -i '/-DCMAKE/,/j8/d' debian/rules
     sed -i 's/--fail-missing//' debian/rules
     cp debian/mysql-shell.install debian/install
-    #echo "usr/lib/mysqlsh/libssh*.so*" >> debian/install
-    echo "usr/lib/mysqlsh/libprotobuf*.so*" >> debian/install
-    echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
-    echo "usr/lib/mysqlsh/libgmock.so*" >> debian/install
+    if [ ${SHELL_BRANCH:2:1} != 0 ]; then
+        echo "usr/lib/mysqlsh/libprotobuf-lite.so*" >> debian/install
+        echo "usr/lib/mysqlsh/libabsl_*.so*" >> debian/install
+    fi
     sed -i 's:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null:-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -rf debian/tmp/usr/local:' debian/rules
+    sed -i 's|-DWITH_PROTOBUF=[^ ]*||g' debian/rules
     if [ "x${DEBIAN_VERSION}" = "xjammy" -o "x${DEBIAN_VERSION}" = "xnoble" ]; then
-        sed -i "s:VERBOSE=1:-DCMAKE_SHARED_LINKER_FLAGS="" -DCMAKE_MODULE_LINKER_FLAGS="" -DCMAKE_CXX_FLAGS=\"-Wno-stringop-overflow -Wno-maybe-uninitialized\" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
+        sed -i "s:VERBOSE=1:-DUSE_LD_GOLD=ON -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--gc-sections" -DCMAKE_MODULE_LINKER_FLAGS="-Wl,--gc-sections" -DCMAKE_CXX_FLAGS=\"-Wno-stringop-overflow -Wno-maybe-uninitialized\" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="-Wl,--as-needed" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF_LITE=ON -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_ABSEIL_LIBRARIES=${WORKDIR}/percona-server/bld/library_output_directory . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
         sed -i "s/override_dh_auto_clean:/override_dh_auto_clean:\n\noverride_dh_auto_build:\n\tmake -j1/" debian/rules
+    elif -o [ "x${DEBIAN_VERSION}" = "xresolute" ]; then
+        sed -i "s:VERBOSE=1:-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--copy-dt-needed-entries" -DCMAKE_MODULE_LINKER_FLAGS="-Wl,--copy-dt-needed-entries" -DCMAKE_CXX_FLAGS=\"-Wno-stringop-overflow -Wno-maybe-uninitialized\" -DCMAKE_C_FLAGS="" -DCMAKE_EXE_LINKER_FLAGS="-Wl,--as-needed,--copy-dt-needed-entries" -DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=Release -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF_LITE=ON -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk -DBUNDLED_ABSEIL_LIBRARIES=${WORKDIR}/percona-server/bld/library_output_directory . \n\t DEB_BUILD_HARDENING=1 make -j1 VERBOSE=1:" debian/rules
     else
-        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DWITH_OCI=$WORKDIR/oci_sdk -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF=system -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
+        sed -i "s:VERBOSE=1:-DBUNDLED_PYTHON_DIR=\"/usr/local/python312\" -DPYTHON_INCLUDE_DIRS=\"/usr/local/python312/include/python3.12\" -DPYTHON_LIBRARIES=\"/usr/local/python312/lib/libpython3.12.so\" -DBUNDLED_ANTLR_DIR=\"/opt/antlr4/usr/local\" -DPACKAGE_YEAR=${CURRENT_YEAR} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEXTRA_INSTALL=\"\" -DEXTRA_NAME_SUFFIX=\"\" -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld -DMYSQL_EXTRA_LIBRARIES=\"-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata \" -DWITH_PROTOBUF_LITE=ON -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library -DHAVE_PYTHON=1 -DWITH_STATIC_LINKING=ON -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib -DWITH_OCI=$WORKDIR/oci_sdk . \n\t DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1:" debian/rules
     fi
     if [ "x$OS_NAME" != "xbuster" ]; then
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\tcp debian/../bin/* debian/tmp/usr/bin/\n\trm -fr debian/tmp/usr/local:' debian/rules
@@ -1273,7 +1351,10 @@ build_deb(){
         sed -i 's:} 2>/dev/null:} 2>/dev/null\n\tmv debian/tmp/usr/local/* debian/tmp/usr/\n\trm -fr debian/tmp/usr/local\n\trm -fr debian/tmp/usr/bin/mysqlshrec:' debian/rules
     fi
     sed -i 's|override_dh_auto_clean:|override_dh_builddeb:\n\tdh_builddeb -- -Zgzip\n\noverride_dh_auto_clean:|' debian/rules
-    sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
+    #sed -i 's|override_dh_install:|\tcp -v /usr/local/lib/libprotobuf-lite* debian/tmp/usr/lib/mysqlsh\n\tcp -a -v /usr/local/lib/libabsl_* debian/tmp/usr/lib/mysqlsh\n\tcp -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
+    sed -i 's@^\tdh_install $@&\n\t# Ensure private libs can find each other at runtime\n\tfor lib in debian/percona-mysql-shell$(PRODUCT_SUFFIX)/usr/lib/mysqlsh/lib*.so*; do \\\n\t  [ -f "$$lib" ] \&\& [ ! -L "$$lib" ] \&\& ! readelf -d "$$lib" 2>/dev/null | grep -qE '"'"'R(UN)?PATH'"'"' \&\& patchelf --debug --set-rpath '"'"'$$ORIGIN'"'"' "$$lib" || true; \\\n\tdone@' debian/rules
+    #sed -i 's|override_dh_install:|\tcp -a -v /usr/local/lib/libgmock* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
+    #sed -i 's|override_dh_install:|\tcp -a -v /opt/antlr4/usr/local/lib/libg* debian/tmp/usr/lib/mysqlsh\n\noverride_dh_install:|' debian/rules
     sed -i 's:, libprotobuf-dev, protobuf-compiler::' debian/control
     grep -r "Werror" * | awk -F ':' '{print $1}' | sort | uniq | xargs sed -i 's/-Werror/-Wno-error/g'
     dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
@@ -1329,6 +1410,11 @@ build_tarball(){
     DIRNAME="tarball"
     mkdir bld
     cd bld
+    if [ "${ARCH}" = "x86_64" ]; then
+        EXTRA_CXX_FLAGS="-march=x86-64-v2 -mtune=generic"
+    elif [ "${ARCH}" = "aarch64" ]; then
+        EXTRA_CXX_FLAGS="-march=armv8-a+crc -mtune=generic -moutline-atomics"
+    fi
     if [ -f /etc/redhat-release ]; then
         if [ $RHEL = 7 ]; then
             source /opt/rh/devtoolset-11/enable
@@ -1343,16 +1429,16 @@ build_tarball(){
         if [ $RHEL = 9 -o $RHEL = 10 ]; then
             source /opt/rh/gcc-toolset-12/enable
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_CXX_FLAGS_INIT="-O2 ${EXTRA_CXX_FLAGS}" \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
                 -DHAVE_PYTHON=1 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
-                -DWITH_PROTOBUF=system \
+                -DWITH_PROTOBUF_LITE=ON \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a \
                 -DBUNDLED_OPENSSL_DIR=system \
                 -DBUNDLED_SSH_DIR='' \
                 -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
@@ -1368,9 +1454,7 @@ build_tarball(){
                 -DHAVE_PYTHON=1 \
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
-                -DWITH_PROTOBUF=system \
-                -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
+                -DWITH_PROTOBUF_LITE=ON \
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
                 -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
                 -DBUNDLED_SHARED_PYTHON=yes \
@@ -1380,6 +1464,8 @@ build_tarball(){
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library
         else
             cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_CXX_FLAGS_INIT="-O2 ${EXTRA_CXX_FLAGS}" \
                 -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
                 -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
                 -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
@@ -1387,9 +1473,7 @@ build_tarball(){
                 -DWITH_OCI=$WORKDIR/oci_sdk \
                 -DWITH_STATIC_LINKING=ON \
                 -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-                -DWITH_PROTOBUF=system \
-                -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-                -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
+                -DWITH_PROTOBUF_LITE=ON \
                 -DBUNDLED_OPENSSL_DIR=/usr/local/openssl11 \
                 -DPYTHON_INCLUDE_DIRS=/usr/local/python311/include/python3.11 \
                 -DPYTHON_LIBRARIES=/usr/local/python311/lib/libpython3.11.so \
@@ -1400,14 +1484,14 @@ build_tarball(){
         fi
     else
         cmake .. -DMYSQL_SOURCE_DIR=${WORKDIR}/percona-server \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS_INIT="-O2 ${EXTRA_CXX_FLAGS}" \
             -DMYSQL_BUILD_DIR=${WORKDIR}/percona-server/bld \
             -DMYSQL_EXTRA_LIBRARIES="-lz -ldl -lssl -lcrypto -licui18n -licuuc -licudata " \
             -DJIT_EXECUTOR_LIB=${WORKDIR}/polyglot-nativeapi-native-library \
             -DHAVE_PYTHON=1 \
             -DZLIB_LIBRARY=${WORKDIR}/percona-server/extra/zlib \
-            -DWITH_PROTOBUF=system \
-            -DPROTOBUF_INCLUDE_DIRS=/usr/local/include \
-            -DPROTOBUF_LIBRARIES=/usr/local/lib/libprotobuf.a\
+            -DWITH_PROTOBUF_LITE=ON \
             -DWITH_OCI=$WORKDIR/oci_sdk \
             -DWITH_STATIC_LINKING=ON \
             -DBUNDLED_ANTLR_DIR=/opt/antlr4/usr/local \
@@ -1417,13 +1501,25 @@ build_tarball(){
             -DPYTHON_LIBRARIES=/usr/local/python312/lib/libpython3.12.so
     fi
     make -j4
-    mkdir ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
-    cp -r bin ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
-    cp -r share ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
+    strip -v --strip-debug bin/mysqlsh
+    mkdir ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
+    cp -r bin ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/
+    cp -r share ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/
     if [ -d lib ]; then
-        cp -r lib ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/
+        cp -r lib ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/
     fi
-    tar -zcvf ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}
+    LIB_DIR=$([ -d /usr/local/lib64 ] && echo /usr/local/lib64 || echo /usr/local/lib)
+    if [ -f /etc/redhat-release ]; then
+        cp -a /usr/lib64/libicu* ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/lib/mysqlsh/
+    fi
+    #cp -a ${LIB_DIR}/libprotobuf-lite.so.* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
+    #cp -a ${LIB_DIR}/libabsl_* ${NAME}-${VERSION}-linux-glibc${GLIBC_VERSION}/lib/mysqlsh/
+    chmod +x ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}/lib/mysqlsh/*.so*
+    cd ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
+    patchelf --debug --set-rpath '$ORIGIN' lib/mysqlsh/libabsl_*
+    ln -s bin libexec
+    cd ..
+    tar -zcvf ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}.tar.gz ${NAME}-${VERSION}-linux-${ARCH}-glibc${GLIBC_VERSION}
     mkdir -p ${WORKDIR}/${DIRNAME}
     mkdir -p ${CURDIR}/${DIRNAME}
     cp *.tar.gz ${WORKDIR}/${DIRNAME}
