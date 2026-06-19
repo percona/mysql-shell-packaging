@@ -260,9 +260,11 @@ get_database(){
             cmake .. -DENABLE_DOWNLOADS=1 -DWITH_SSL=/usr/local/openssl11 -DWITH_ABSEIL=bundled -DWITH_BOOST=$WORKDIR/boost -DWITH_ZLIB=bundled -DWITH_COREDUMPER=OFF -DWITH_CURL=system
         else
             if [ $RHEL = 10 ]; then
-                cmake ..   -DBUILD_SHARED_LIBS=OFF \
+                cmake .. \
+                    $(if [ "${SHELL_BRANCH:2:1}" = "0" ]; then echo "\
+                    -DBUILD_SHARED_LIBS=OFF \
                     -Dprotobuf_BUILD_SHARED_LIBS=OFF \
-                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON"; fi) \
                     -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
                     -DENABLE_DOWNLOADS=1 \
                     -DWITH_SSL=system \
@@ -274,9 +276,11 @@ get_database(){
                     -DALLOW_NO_SSE42=1 \
                     -DWITH_ADMINAPI=OFF
             else
-                cmake ..   -DBUILD_SHARED_LIBS=OFF \
+                cmake .. \
+                    $(if [ "${SHELL_BRANCH:2:1}" = "0" ]; then echo "\
+                    -DBUILD_SHARED_LIBS=OFF \
                     -Dprotobuf_BUILD_SHARED_LIBS=OFF \
-                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON"; fi) \
                     -DENABLE_DOWNLOADS=1 \
                     -DWITH_SSL=system \
                     -DWITH_PROTOBUF=bundled \
@@ -290,9 +294,11 @@ get_database(){
             fi
         fi
     else
-        cmake .. -DBUILD_SHARED_LIBS=OFF \
+        cmake .. \
+            $(if [ "${SHELL_BRANCH:2:1}" = "0" ]; then echo "\
+            -DBUILD_SHARED_LIBS=OFF \
             -Dprotobuf_BUILD_SHARED_LIBS=OFF \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON"; fi) \
             -DENABLE_DOWNLOADS=1 \
             -DWITH_SSL=system \
             -DWITH_BOOST=$WORKDIR/boost \
