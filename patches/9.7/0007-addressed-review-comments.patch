@@ -1,0 +1,79 @@
+From d0ea7a0963c1f9fdeb19d2e46e275e42bc41bf27 Mon Sep 17 00:00:00 2001
+From: Kamil Holubicki <kamil.holubicki@percona.com>
+Date: Thu, 23 Apr 2026 13:00:45 +0200
+Subject: [PATCH 7/9] Addressed review comments.
+
+---
+ modules/util/dump/ddl_dumper_options.cc | 22 +++++++++++-----------
+ modules/util/dump/ddl_dumper_options.h  |  2 --
+ modules/util/dump/dumper.cc             |  3 ++-
+ 3 files changed, 13 insertions(+), 14 deletions(-)
+
+diff --git a/modules/util/dump/ddl_dumper_options.cc b/modules/util/dump/ddl_dumper_options.cc
+index f518482cf0..95aad07432 100644
+--- a/modules/util/dump/ddl_dumper_options.cc
++++ b/modules/util/dump/ddl_dumper_options.cc
+@@ -211,17 +211,6 @@ void Ddl_dumper_options::set_threads(uint64_t threads) {
+   m_worker_threads = threads;
+ }
+ 
+-AdaptiveStepStrategy Ddl_dumper_options::to_adaptive_step_strategy(
+-    const std::string option) {
+-  if (option == "enhanced") {
+-    return AdaptiveStepStrategy::ENHANCED;
+-  } else if (option == "original") {
+-    return AdaptiveStepStrategy::ORIGINAL;
+-  }
+-  throw std::invalid_argument(
+-      "Invalid value for 'adaptiveStepStrategy' option: " + option);
+-}
+-
+ void Ddl_dumper_options::set_max_key_prefix_len(const size_t &value) {
+   if (!split()) {
+     throw std::invalid_argument(
+@@ -232,6 +221,17 @@ void Ddl_dumper_options::set_max_key_prefix_len(const size_t &value) {
+   m_max_key_prefix_len = value;
+ }
+ 
++static AdaptiveStepStrategy to_adaptive_step_strategy(
++    const std::string &option) {
++  if (option == "enhanced") {
++    return AdaptiveStepStrategy::ENHANCED;
++  } else if (option == "original") {
++    return AdaptiveStepStrategy::ORIGINAL;
++  }
++  throw std::invalid_argument(
++      "Invalid value for 'adaptiveStepStrategy' option: " + option);
++}
++
+ void Ddl_dumper_options::set_adaptive_step_strategy(const std::string &value) {
+   if (value.empty()) {
+     throw std::invalid_argument(
+diff --git a/modules/util/dump/ddl_dumper_options.h b/modules/util/dump/ddl_dumper_options.h
+index dd5ca0b95c..302ed73784 100644
+--- a/modules/util/dump/ddl_dumper_options.h
++++ b/modules/util/dump/ddl_dumper_options.h
+@@ -115,8 +115,6 @@ class Ddl_dumper_options : public Dump_options {
+   void set_max_key_prefix_len(const size_t &value);
+   void set_adaptive_step_strategy(const std::string &value);
+ 
+-  AdaptiveStepStrategy to_adaptive_step_strategy(const std::string option);
+-
+   bool m_split = true;
+   uint64_t m_bytes_per_chunk;
+ 
+diff --git a/modules/util/dump/dumper.cc b/modules/util/dump/dumper.cc
+index 79bdaca322..d23b98169e 100644
+--- a/modules/util/dump/dumper.cc
++++ b/modules/util/dump/dumper.cc
+@@ -1653,7 +1653,8 @@ class Dumper::Table_worker final {
+           rows_cnt_ += rows_cnt;
+         }
+ 
+-        if (rows_cnt_ > 3 * max_rows_cnt_ || last) {
++        static constexpr uint64_t flush_threshold_multiplier = 3;
++        if (rows_cnt_ > flush_threshold_multiplier * max_rows_cnt_ || last) {
+           // flush gluer if we accumulated a lot of chunks or this is the last
+           // one
+           DBG_GLUE(log_debug("Gluer::glue() - Gluer full. rows: %ld, last?: %d",
+

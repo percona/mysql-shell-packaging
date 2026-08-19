@@ -1,0 +1,60 @@
+From 70e38233174602bad34742cefad6f02f4538835a Mon Sep 17 00:00:00 2001
+From: Kamil Holubicki <kamil.holubicki@percona.com>
+Date: Thu, 23 Apr 2026 12:59:16 +0200
+Subject: [PATCH 5/9] PS-10922: Chunking errors when partitioned tables w/
+ adaptiveStepStrategy: "enhanced"
+
+https://perconadev.atlassian.net/browse/PS-10922
+
+Problem:
+When trying to estimate rows count in a given range, parsing of the
+EXPLAIN query result fails.
+This is because the original implementaton of parsing EXPLAIN output
+JSON does not cover all possible return values. In such a case exception
+is raised and execution stops with error.
+
+Solution:
+Added handling of the case when EXPLAIN output says
+'zero_rows_aggregated', which means zero rows in a range.
+---
+ modules/util/dump/dumper.cc | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/modules/util/dump/dumper.cc b/modules/util/dump/dumper.cc
+index e48f0f4648..b08bceb042 100644
+--- a/modules/util/dump/dumper.cc
++++ b/modules/util/dump/dumper.cc
+@@ -2520,6 +2520,13 @@ class Dumper::Table_worker final {
+           "Failed to parse JSON output of an EXPLAIN statement: %s", e.what()));
+     }
+ 
++    // This function is fragile, as originally it expects info about rows
++    // count to be in a specific place in the JSON output of EXPLAIN statement.
++    // Moreover it expects it to be a number. However, in some cases
++    // (e.g. when there are no rows to process) the output may differ between
++    // MySQL versions.
++    // That's why I think it should return 0 when it is not able to find the row
++    // count in the expected place.
+     if (auto *v = rapidjson::Pointer("/query_block/message").Get(json)) {
+       if (v->IsString()) {
+         std::string msg = v->GetString();
+@@ -2533,6 +2540,18 @@ class Dumper::Table_worker final {
+         }
+       }
+     }
++    if (auto *v = rapidjson::Pointer("/query_plan/access_type").Get(json)) {
++      if (v->IsString()) {
++        std::string msg = v->GetString();
++        if (msg.find("zero_rows_aggregated") != std::string::npos) {
++          log_info(
++              "EXPLAIN statement returned message indicating that there are no "
++              "rows to process: %s",
++              msg.c_str());
++          return 0;
++        }
++      }
++    }
+     if (!m_json_path) {
+       for (const auto path : {
+                "/query_plan/inputs/0/estimated_rows",  // v2 + BUG#35239659
+

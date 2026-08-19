@@ -1,0 +1,251 @@
+From 33881b46f26f0e476687e273099823a1be85a5fa Mon Sep 17 00:00:00 2001
+From: Kamil Holubicki <kamil.holubicki@percona.com>
+Date: Thu, 23 Apr 2026 13:00:23 +0200
+Subject: [PATCH 6/9] PS-10933: dumpInstance() when chunking:false skip
+ messages for step strategy & chunking nesting depth
+
+https://perconadev.atlassian.net/browse/PS-10933
+
+Improved config options dependencies handling.
+---
+ modules/util/dump/ddl_dumper_options.cc  | 40 ++++++++++++++++++++++++
+ modules/util/dump/ddl_dumper_options.h   | 16 ++++++++++
+ modules/util/dump/dump_options.cc        | 15 ---------
+ modules/util/dump/dump_options.h         | 14 ++-------
+ modules/util/dump/dumper.cc              | 25 ++++++++-------
+ modules/util/dump/export_table_options.h |  6 ++++
+ 6 files changed, 78 insertions(+), 38 deletions(-)
+
+diff --git a/modules/util/dump/ddl_dumper_options.cc b/modules/util/dump/ddl_dumper_options.cc
+index aca6d5e6d5..f518482cf0 100644
+--- a/modules/util/dump/ddl_dumper_options.cc
++++ b/modules/util/dump/ddl_dumper_options.cc
+@@ -90,6 +90,10 @@ const shcore::Option_pack_def<Ddl_dumper_options>
+           .optional("checksum", &Ddl_dumper_options::m_checksum)
+           .optional("lakehouseTarget",
+                     &Ddl_dumper_options::set_lakehouse_target)
++          .optional("maxKeyPrefixLength",
++                    &Ddl_dumper_options::set_max_key_prefix_len)
++          .optional("adaptiveStepStrategy",
++                    &Ddl_dumper_options::set_adaptive_step_strategy)
+           .on_done(&Ddl_dumper_options::on_unpacked_options);
+ 
+   return opts;
+@@ -207,6 +211,42 @@ void Ddl_dumper_options::set_threads(uint64_t threads) {
+   m_worker_threads = threads;
+ }
+ 
++AdaptiveStepStrategy Ddl_dumper_options::to_adaptive_step_strategy(
++    const std::string option) {
++  if (option == "enhanced") {
++    return AdaptiveStepStrategy::ENHANCED;
++  } else if (option == "original") {
++    return AdaptiveStepStrategy::ORIGINAL;
++  }
++  throw std::invalid_argument(
++      "Invalid value for 'adaptiveStepStrategy' option: " + option);
++}
++
++void Ddl_dumper_options::set_max_key_prefix_len(const size_t &value) {
++  if (!split()) {
++    throw std::invalid_argument(
++        "The option 'maxKeyPrefixLength' cannot be used if the 'chunking' "
++        "option is set to false.");
++  }
++
++  m_max_key_prefix_len = value;
++}
++
++void Ddl_dumper_options::set_adaptive_step_strategy(const std::string &value) {
++  if (value.empty()) {
++    throw std::invalid_argument(
++        "The option 'adaptiveStepStrategy' cannot be set to an empty string.");
++  }
++
++  if (!split()) {
++    throw std::invalid_argument(
++        "The option 'adaptiveStepStrategy' cannot be used if the 'chunking' "
++        "option is set to false.");
++  }
++
++  m_adaptive_step_strategy = to_adaptive_step_strategy(value);
++}
++
+ void Ddl_dumper_options::on_set_url(
+     const std::string &url, Storage_type storage,
+     const mysqlshdk::storage::Config_ptr &config) {
+diff --git a/modules/util/dump/ddl_dumper_options.h b/modules/util/dump/ddl_dumper_options.h
+index 8b185b19d4..dd5ca0b95c 100644
+--- a/modules/util/dump/ddl_dumper_options.h
++++ b/modules/util/dump/ddl_dumper_options.h
+@@ -81,6 +81,12 @@ class Ddl_dumper_options : public Dump_options {
+ 
+   bool checksum() const override { return m_checksum; }
+ 
++  AdaptiveStepStrategy adaptive_step_strategy() const override {
++    return m_adaptive_step_strategy;
++  }
++
++  size_t max_key_prefix_length() const override { return m_max_key_prefix_len; }
++
+   void enable_mds_compatibility_checks();
+ 
+   using Dump_options::set_compatibility_option;
+@@ -106,6 +112,10 @@ class Ddl_dumper_options : public Dump_options {
+   void set_target_version_str(const std::string &value);
+   void set_dry_run(bool dry_run);
+   void set_threads(uint64_t threads);
++  void set_max_key_prefix_len(const size_t &value);
++  void set_adaptive_step_strategy(const std::string &value);
++
++  AdaptiveStepStrategy to_adaptive_step_strategy(const std::string option);
+ 
+   bool m_split = true;
+   uint64_t m_bytes_per_chunk;
+@@ -126,6 +136,12 @@ class Ddl_dumper_options : public Dump_options {
+   bool m_skip_consistency_checks = false;
+   bool m_skip_upgrade_checks = false;
+   bool m_checksum = false;
++
++  // max nesting depth for composite keys
++  size_t m_max_key_prefix_len = 1;
++
++  AdaptiveStepStrategy m_adaptive_step_strategy =
++      AdaptiveStepStrategy::ORIGINAL;
+ };
+ 
+ }  // namespace dump
+diff --git a/modules/util/dump/dump_options.cc b/modules/util/dump/dump_options.cc
+index a8837b54a3..0f09007be1 100644
+--- a/modules/util/dump/dump_options.cc
++++ b/modules/util/dump/dump_options.cc
+@@ -62,8 +62,6 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
+           .optional("defaultCharacterSet", &Dump_options::m_character_set)
+           // WL17279-FR1.2: `allowDataMasking` option
+           .optional("allowDataMasking", &Dump_options::m_allow_data_masking)
+-          .optional("maxKeyPrefixLength", &Dump_options::m_max_key_prefix_len)
+-          .optional("adaptiveStepStrategy", &Dump_options::set_string_option)
+           .include(&Dump_options::m_dialect_unpacker)
+           .on_done(&Dump_options::on_unpacked_options);
+ 
+@@ -78,17 +76,6 @@ void Dump_options::on_start_unpack(const shcore::Dictionary_t &options) {
+   m_options = options;
+ }
+ 
+-AdaptiveStepStrategy Dump_options::to_adaptive_step_strategy(
+-    const std::string option) {
+-  if (option == "enhanced") {
+-    return AdaptiveStepStrategy::ENHANCED;
+-  } else if (option == "original") {
+-    return AdaptiveStepStrategy::ORIGINAL;
+-  }
+-  throw std::invalid_argument(
+-      "Invalid value for 'adaptiveStepStrategy' option: " + option);
+-}
+-
+ void Dump_options::set_string_option(const std::string &option,
+                                      const std::string &value) {
+   if (option == "maxRate") {
+@@ -102,8 +89,6 @@ void Dump_options::set_string_option(const std::string &option,
+     }
+     m_compression =
+         mysqlshdk::storage::to_compression(value, &m_compression_options);
+-  } else if (option == "adaptiveStepStrategy") {
+-    m_adaptive_step_strategy = to_adaptive_step_strategy(value);
+   } else {
+     // This function should only be called with the options above.
+     assert(false);
+diff --git a/modules/util/dump/dump_options.h b/modules/util/dump/dump_options.h
+index 5434cc59bc..fa6799c42d 100644
+--- a/modules/util/dump/dump_options.h
++++ b/modules/util/dump/dump_options.h
+@@ -163,11 +163,9 @@ class Dump_options : public mysqlsh::common::Common_options {
+ 
+   void set_report_dump_option(bool value) { m_report_dump_option = value; }
+ 
+-  AdaptiveStepStrategy adaptive_step_strategy() const {
+-    return m_adaptive_step_strategy;
+-  }
++  virtual AdaptiveStepStrategy adaptive_step_strategy() const = 0;
+ 
+-  size_t max_key_prefix_length() const { return m_max_key_prefix_len; }
++  virtual size_t max_key_prefix_length() const = 0;
+ 
+   virtual bool split() const = 0;
+ 
+@@ -270,8 +268,6 @@ class Dump_options : public mysqlsh::common::Common_options {
+ 
+   void validate_partitions() const;
+ 
+-  AdaptiveStepStrategy to_adaptive_step_strategy(const std::string option);
+-
+   // input arguments
+   shcore::Dictionary_t m_options;
+ 
+@@ -317,12 +313,6 @@ class Dump_options : public mysqlsh::common::Common_options {
+   Compatibility_options m_compatibility_options;
+   std::optional<mysqlshdk::utils::Version> m_target_version;
+   std::optional<Lakehouse_target_option> m_lakehouse_target;
+-
+-  // max nesting depth for composite keys
+-  size_t m_max_key_prefix_len = 1;
+-
+-  AdaptiveStepStrategy m_adaptive_step_strategy =
+-      AdaptiveStepStrategy::ORIGINAL;
+ };
+ 
+ }  // namespace dump
+diff --git a/modules/util/dump/dumper.cc b/modules/util/dump/dumper.cc
+index b08bceb042..79bdaca322 100644
+--- a/modules/util/dump/dumper.cc
++++ b/modules/util/dump/dumper.cc
+@@ -2906,17 +2906,20 @@ void Dumper::do_run() {
+         current_console()->print_status(msg);
+       }
+ 
+-      std::string strategy = (m_options.adaptive_step_strategy() ==
+-                              mysqlsh::dump::AdaptiveStepStrategy::ENHANCED)
+-                                 ? "enhanced"
+-                                 : "original";
+-      msg = "Using " + strategy + " adaptive step strategy.";
+-      current_console()->print_status(msg);
+-      msg = "Maximum chunking nesting depth: " +
+-            (m_options.max_key_prefix_length() == 0
+-                 ? "unlimited"
+-                 : std::to_string(m_options.max_key_prefix_length()));
+-      current_console()->print_status(msg);
++      // print chunking strategy information only if chunking is enabled
++      if (m_options.split()) {
++        std::string strategy = (m_options.adaptive_step_strategy() ==
++                                mysqlsh::dump::AdaptiveStepStrategy::ENHANCED)
++                                   ? "enhanced"
++                                   : "original";
++        msg = "Using " + strategy + " adaptive step strategy.";
++        current_console()->print_status(msg);
++        msg = "Maximum chunking nesting depth: " +
++              (m_options.max_key_prefix_length() == 0
++                   ? "unlimited"
++                   : std::to_string(m_options.max_key_prefix_length()));
++        current_console()->print_status(msg);
++      }
+ 
+       if (!m_options.is_dry_run() && m_options.show_progress() &&
+           m_options.dump_data()) {
+diff --git a/modules/util/dump/export_table_options.h b/modules/util/dump/export_table_options.h
+index e43a382fdc..14d445bcc1 100644
+--- a/modules/util/dump/export_table_options.h
++++ b/modules/util/dump/export_table_options.h
+@@ -93,6 +93,12 @@ class Export_table_options : public Dump_options {
+ 
+   bool checksum() const override { return false; }
+ 
++  AdaptiveStepStrategy adaptive_step_strategy() const override {
++    return AdaptiveStepStrategy::ORIGINAL;
++  }
++
++  size_t max_key_prefix_length() const override { return 1; }
++
+  private:
+   void on_set_session(
+       const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
+
