@@ -512,6 +512,8 @@ get_sources(){
         echo "PERCONA_PATCHES=${PATCH_COUNT:-0}"
         echo "PERCONA_PATCH_SOURCE=${PATCH_SOURCE:-none}"
         echo "PERCONA_PATCH_SHA256=${PATCH_SHA:-none}"
+        echo "DESTINATION=${DESTINATION}"
+        echo "UPLOAD=UPLOAD/${DESTINATION}/BUILDS/mysql-shell/mysql-shell-80/${SHELL_BRANCH}/$(date "+%Y%m%d-%H%M%S")"
     } >> "${VERSION_FILE}"
 
     cd "${WORKDIR}"
@@ -693,6 +695,12 @@ build_deb(){
     srcdir=$(find . -maxdepth 1 -type d -name "${PRODUCT}-*" | head -n1)
     cd "${srcdir}" || die "no unpacked source"
 
+    local upstream
+    upstream=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//')
+    dch -b -m -D "${OS_NAME}" --force-distribution \
+        -v "${upstream}-${RPM_RELEASE}.${DEB_RELEASE}.${OS_NAME}" \
+        "Build for ${OS_NAME}" || die "cannot set the ${OS_NAME} package version"
+
     export DEB_BUILD_MAINT_OPTIONS="optimize=-lto"
     export DEB_CFLAGS_MAINT_STRIP="-flto=auto -ffat-lto-objects"
     export DEB_CXXFLAGS_MAINT_STRIP="-flto=auto -ffat-lto-objects"
@@ -853,6 +861,7 @@ build_tarball(){
 CURDIR=$(pwd)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION_FILE="${CURDIR}/mysql-shell.properties"
+DESTINATION="${DESTINATION:-experimental}"
 args=
 WORKDIR=
 SRPM=0
