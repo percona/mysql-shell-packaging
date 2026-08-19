@@ -167,21 +167,23 @@ install_deps() {
                 dnf -y install dnf-plugins-core epel-release || true
             dnf config-manager --enable "ol${RHEL}_codeready_builder" || \
                 dnf config-manager --enable crb || true
-            dnf config-manager --enable "ol${RHEL}_developer_EPEL" || true
+            dnf config-manager --enable "ol${RHEL}_developer_EPEL" >/dev/null 2>&1 || true
         fi
         add_percona_yum_repo
 
-        RPM_PKGS="git wget curl tar gzip patch diffutils which findutils make cmake bison
+        RPM_PKGS="git wget tar gzip patch diffutils which findutils make cmake bison
                   pkgconf-pkg-config rpm-build rpmdevtools
                   openssl-devel ncurses-devel zlib-devel libcurl-devel libssh-devel
                   libtirpc-devel rpcgen patchelf
                   cyrus-sasl-devel cyrus-sasl-scram cyrus-sasl-gssapi
                   krb5-devel openldap-devel systemd-devel
                   libaio-devel numactl-devel perl-Digest-MD5 perl-Env"
-        if [ "$OS_NAME" = "amzn2023" ]; then
-            RPM_PKGS="$RPM_PKGS gcc gcc-c++"
-        else
+        # amazonlinux ships curl-minimal, which conflicts with the curl package
+        command -v curl >/dev/null 2>&1 || RPM_PKGS="$RPM_PKGS curl"
+        if [ -n "${OS_TOOLSET:-}" ]; then
             RPM_PKGS="$RPM_PKGS gcc-toolset-14"
+        else
+            RPM_PKGS="$RPM_PKGS gcc gcc-c++"
         fi
         if [ "${RHEL}" = "8" ]; then
             dnf -y module enable python38 || true
@@ -852,11 +854,12 @@ get_system
 ANTLR_PREFIX="${WORKDIR}/antlr"
 JITEXECUTOR_DIR="${WORKDIR}/jitexecutor"
 PYDEPS_DIR="${WORKDIR}/pydeps"
-if [ "$OS" = "rpm" ] && [ "$OS_NAME" != "amzn2023" ]; then
-    OS_TOOLSET="/opt/rh/gcc-toolset-14/enable"
-else
-    OS_TOOLSET=""
-fi
+# el8 and el9 need a toolset to get a compiler new enough to build the shell.
+# el10 and amzn2023 ship gcc 14 as the system compiler and have no such package.
+case "$OS_NAME" in
+    el8|el9) OS_TOOLSET="/opt/rh/gcc-toolset-14/enable" ;;
+    *)       OS_TOOLSET="" ;;
+esac
 
 install_deps
 
