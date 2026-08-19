@@ -112,7 +112,14 @@ get_system(){
         fi
     else
         OS="deb"
-        OS_NAME="$(lsb_release -sc)"
+        # lsb_release is not present in a bare debian/ubuntu image and
+        # install_deps has not run yet, so read os-release directly
+        if [ -r /etc/os-release ]; then
+            OS_NAME=$(. /etc/os-release 2>/dev/null && echo "${VERSION_CODENAME:-}")
+        fi
+        if [ -z "${OS_NAME}" ] && command -v lsb_release >/dev/null 2>&1; then
+            OS_NAME="$(lsb_release -sc)"
+        fi
         RHEL=0
         DIST_TAG=""
     fi
