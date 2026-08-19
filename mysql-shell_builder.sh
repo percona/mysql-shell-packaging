@@ -112,8 +112,6 @@ get_system(){
         fi
     else
         OS="deb"
-        # lsb_release is not present in a bare debian/ubuntu image and
-        # install_deps has not run yet, so read os-release directly
         if [ -r /etc/os-release ]; then
             OS_NAME=$(. /etc/os-release 2>/dev/null && echo "${VERSION_CODENAME:-}")
         fi
@@ -178,7 +176,6 @@ install_deps() {
                   cyrus-sasl-devel cyrus-sasl-scram cyrus-sasl-gssapi
                   krb5-devel openldap-devel systemd-devel
                   libaio-devel numactl-devel perl-Digest-MD5 perl-Env"
-        # amazonlinux ships curl-minimal, which conflicts with the curl package
         command -v curl >/dev/null 2>&1 || RPM_PKGS="$RPM_PKGS curl"
         if [ -n "${OS_TOOLSET:-}" ]; then
             RPM_PKGS="$RPM_PKGS gcc-toolset-14"
@@ -346,10 +343,19 @@ build_database(){
     fi
     mkdir -p "${DB_SOURCE_DIR}/bld"
     cd "${DB_SOURCE_DIR}/bld" || die "no db build dir"
+
+    local db_flags=()
+    case "${OS_NAME}" in
+        jammy|noble|resolute)
+            db_flags+=( -DCMAKE_C_FLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2"
+                        -DCMAKE_CXX_FLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2" ) ;;
+    esac
+
     cmake .. \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DWITH_AUTHENTICATION_CLIENT_PLUGINS=YES \
         -DWITH_TIRPC=bundled \
+        "${db_flags[@]}" \
         -DDOWNLOAD_BOOST=1 -DWITH_BOOST="${WORKDIR}/boost" || die "database cmake failed"
 
     cmake --build . --parallel "$(nproc)" --target \
@@ -357,12 +363,23 @@ build_database(){
         mysql_config_editor mysql_binlog_event_standalone mysqlbinlog \
         routing_guidelines-objects || die "database build failed"
 
-    local t
+    local t targets
+    targets=$(cmake --build . --target help 2>/dev/null | sed -n 's/^\.\.\. //p' | awk '{print $1}')
     for t in mysql_native_password authentication_oci_client \
              authentication_openid_connect_client authentication_webauthn_client \
              authentication_ldap_sasl_client authentication_kerberos_client ; do
-        cmake --build . --parallel "$(nproc)" --target "$t" || echo "NOTE: target $t unavailable, skipped"
+        if [ -n "${targets}" ] && ! printf '%s\n' "${targets}" | grep -qx "${t}"; then
+            echo "NOTE: ${t} is not a target of this server build, skipping"
+            continue
+        fi
+        cmake --build . --parallel "$(nproc)" --target "$t" \
+            || die "server target ${t} failed to build"
     done
+
+    echo "Client plugins built:"
+    find . -name 'authentication_*_client.so' -o -name 'mysql_native_password.so' \
+        | sed 's|.*/|  |' | sort
+    find . -name 'libfido2.so*' | sed 's|^|  |' | sort
     cd "${WORKDIR}"
 }
 
@@ -455,8 +472,6 @@ get_sources(){
     REVISION=$(git rev-parse --short HEAD)
     cd "${WORKDIR}"
 
-    # build fixes from later upstream releases; these apply regardless of
-    # --apply_patches because without them the build fails on some distributions
     apply_upstream_backports "${WORKDIR}/mysql-shell"
     apply_percona_patches "${WORKDIR}/mysql-shell"
     skip_rpath_for_bundled_binaries "${WORKDIR}/mysql-shell"
@@ -607,18 +622,11 @@ build_rpm(){
         --define "bundled_antlr ${ANTLR_PREFIX}"
         --define "bundled_mysql_config_editor ${DB_SOURCE_DIR}/bld/runtime_output_directory/mysql_config_editor"
         --define "_smp_mflags -j$(nproc)"
-        # the bison generated parsers define the same file-scope enum with
-        # different enumerators in two translation units, which LTO rejects
-        # as an ODR violation. deb strips LTO via DEB_*_MAINT_STRIP below.
         --define "_lto_cflags %{nil}"
     )
     [ "$WITH_JS" != "0" ] && defines+=( --define "jit_executor_lib ${JITEXECUTOR_DIR}" )
     [ -d "${PYDEPS_DIR}" ] && defines+=( --define "python_deps ${PYDEPS_DIR}" )
 
-    # el10 wires check-rpaths into the install post, unlike el8, el9 and amzn2023.
-    # The server binaries we bundle carry MySQL's placeholder RUNPATH of empty
-    # entries, which adds no search path and which the packages already ship, so
-    # ignore that class only. Invalid (0x0002) and insecure (0x0004) rpaths stay fatal.
     QA_RPATHS=$((0x0010)) rpmbuild "${defines[@]}" --rebuild "${srcrpm}" \
         || die "rpm build failed"
 
@@ -649,8 +657,6 @@ build_source_deb(){
         -DDEBIAN_REVISION="${DEB_RELEASE}" \
         $(common_cmake_opts) || die "debian generator failed"
 
-    # upstream ships 3.0 (quilt), which needs an orig tarball. Keep it: a native
-    # package may not have a revision and the Percona version always carries one.
     cp -f "${WORKDIR}/${tarfile}" "${WORKDIR}/${PRODUCT}_${version}.orig.tar.gz" \
         || die "cannot stage the orig tarball"
 
@@ -889,8 +895,6 @@ get_system
 ANTLR_PREFIX="${WORKDIR}/antlr"
 JITEXECUTOR_DIR="${WORKDIR}/jitexecutor"
 PYDEPS_DIR="${WORKDIR}/pydeps"
-# el8 and el9 need a toolset to get a compiler new enough to build the shell.
-# el10 and amzn2023 ship gcc 14 as the system compiler and have no such package.
 case "$OS_NAME" in
     el8|el9) OS_TOOLSET="/opt/rh/gcc-toolset-14/enable" ;;
     *)       OS_TOOLSET="" ;;
