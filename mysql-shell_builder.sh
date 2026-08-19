@@ -584,6 +584,10 @@ build_rpm(){
         --define "bundled_antlr ${ANTLR_PREFIX}"
         --define "bundled_mysql_config_editor ${DB_SOURCE_DIR}/bld/runtime_output_directory/mysql_config_editor"
         --define "_smp_mflags -j$(nproc)"
+        # the bison generated parsers define the same file-scope enum with
+        # different enumerators in two translation units, which LTO rejects
+        # as an ODR violation. deb strips LTO via DEB_*_MAINT_STRIP below.
+        --define "_lto_cflags %{nil}"
     )
     [ "$WITH_JS" != "0" ] && defines+=( --define "jit_executor_lib ${JITEXECUTOR_DIR}" )
     [ -d "${PYDEPS_DIR}" ] && defines+=( --define "python_deps ${PYDEPS_DIR}" )
@@ -617,7 +621,10 @@ build_source_deb(){
         -DDEBIAN_REVISION="${DEB_RELEASE}" \
         $(common_cmake_opts) || die "debian generator failed"
 
-    echo '3.0 (native)' > debian/source/format
+    # upstream ships 3.0 (quilt), which needs an orig tarball. Keep it: a native
+    # package may not have a revision and the Percona version always carries one.
+    cp -f "${WORKDIR}/${tarfile}" "${WORKDIR}/${PRODUCT}_${version}.orig.tar.gz" \
+        || die "cannot stage the orig tarball"
 
     apply_branding_deb "${srcdir}/debian"
 
