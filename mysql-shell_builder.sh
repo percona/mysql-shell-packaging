@@ -24,6 +24,7 @@ Usage: $0 [OPTIONS]
         --repo_mysqlshell=URL mysql-shell repo (default: upstream)
         --mysqlshell_branch=T mysql-shell tag, e.g. 9.7.1 or 8.4.10
         --with_js=0|1         Build the GraalVM JS library (default: 1)
+        --apply_patches=0|1   Apply the Percona patch series (default: 1; 0 builds vanilla upstream)
         --refresh_patches=0|1 Regenerate Percona patches from the fork first (default: 1)
         --antlr_version=X     Bundled ANTLR C++ runtime version (default: ${ANTLR_VERSION_DEFAULT})
         --graalvm_version=X   GraalVM JDK version for the JS library (default: ${GRAALVM_VERSION_DEFAULT})
@@ -68,6 +69,7 @@ parse_arguments() {
             --mysqlshell_branch=*) SHELL_BRANCH="$val" ;;
             --with_js=*) WITH_JS="$val" ;;
             --refresh_patches=*) REFRESH_PATCHES="$val" ;;
+            --apply_patches=*) APPLY_PATCHES="$val" ;;
             --antlr_version=*) ANTLR_VERSION="$val" ;;
             --graalvm_version=*) GRAALVM_VERSION="$val" ;;
             --rpm_release=*) RPM_RELEASE="$val" ;;
@@ -117,9 +119,13 @@ get_system(){
     export OS OS_NAME RHEL ARCH DIST_TAG
 
     case "$OS_NAME" in
-        el9|el10|amzn2023|bookworm|trixie|jammy|noble) ;;
-        *) die "Unsupported distribution '$OS_NAME'. Supported: el9 el10 amzn2023 bookworm trixie jammy noble" ;;
+        el8|el9|el10|amzn2023|bookworm|trixie|jammy|noble|resolute) ;;
+        *) die "Unsupported distribution '$OS_NAME'. Supported: el8 el9 el10 amzn2023 bookworm trixie jammy noble resolute" ;;
     esac
+    if [ "${OS_NAME}" = "resolute" ]; then
+        export CMAKE_POLICY_VERSION_MINIMUM=3.5
+        export DEB_CPPFLAGS_STRIP="-D_FORTIFY_SOURCE=3"
+    fi
     echo "Building on ${OS_NAME} (${OS}) ${ARCH}"
 }
 
@@ -161,7 +167,7 @@ install_deps() {
         RPM_PKGS="git wget curl tar gzip patch diffutils which findutils make cmake bison
                   pkgconf-pkg-config rpm-build rpmdevtools
                   openssl-devel ncurses-devel zlib-devel libcurl-devel libssh-devel
-                  libtirpc-devel rpcgen python3-devel python3-pip patchelf
+                  libtirpc-devel rpcgen patchelf
                   cyrus-sasl-devel cyrus-sasl-scram cyrus-sasl-gssapi
                   krb5-devel openldap-devel systemd-devel
                   libaio-devel numactl-devel perl-Digest-MD5 perl-Env"
@@ -169,6 +175,12 @@ install_deps() {
             RPM_PKGS="$RPM_PKGS gcc gcc-c++"
         else
             RPM_PKGS="$RPM_PKGS gcc-toolset-14"
+        fi
+        if [ "${RHEL}" = "8" ]; then
+            dnf -y module enable python38 || true
+            RPM_PKGS="$RPM_PKGS python38-devel python38-pip"
+        else
+            RPM_PKGS="$RPM_PKGS python3-devel python3-pip"
         fi
         # shellcheck disable=SC2086
         dnf -y install $RPM_PKGS || die "dependency installation failed"
@@ -364,6 +376,14 @@ apply_percona_patches(){
     local series dir
     series=$(shell_series)
     dir="${SCRIPT_DIR}/patches/${series}"
+
+    if [ "${APPLY_PATCHES}" = "0" ]; then
+        echo "Percona patches disabled (--apply_patches=0); building vanilla upstream"
+        PATCH_COUNT=0
+        PATCH_SOURCE="disabled"
+        PATCH_SHA="disabled"
+        return
+    fi
 
     if [ "${REFRESH_PATCHES}" != "0" ] && [ -x "${SCRIPT_DIR}/patches/refresh.sh" ]; then
         "${SCRIPT_DIR}/patches/refresh.sh" "${series}" \
@@ -808,6 +828,7 @@ RPM_RELEASE=1
 DEB_RELEASE=1
 WITH_JS=1
 REFRESH_PATCHES=1
+APPLY_PATCHES=1
 
 ANTLR_VERSION_DEFAULT="4.13.1"
 GRAALVM_VERSION_DEFAULT="23.0.1"
