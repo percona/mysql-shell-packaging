@@ -592,7 +592,12 @@ build_rpm(){
     [ "$WITH_JS" != "0" ] && defines+=( --define "jit_executor_lib ${JITEXECUTOR_DIR}" )
     [ -d "${PYDEPS_DIR}" ] && defines+=( --define "python_deps ${PYDEPS_DIR}" )
 
-    rpmbuild "${defines[@]}" --rebuild "${srcrpm}" || die "rpm build failed"
+    # el10 wires check-rpaths into the install post, unlike el8, el9 and amzn2023.
+    # The server binaries we bundle carry MySQL's placeholder RUNPATH of empty
+    # entries, which adds no search path and which the packages already ship, so
+    # ignore that class only. Invalid (0x0002) and insecure (0x0004) rpaths stay fatal.
+    QA_RPATHS=$((0x0010)) rpmbuild "${defines[@]}" --rebuild "${srcrpm}" \
+        || die "rpm build failed"
 
     mkdir -p "${WORKDIR}/rpm" "${CURDIR}/rpm"
     find "${WORKDIR}/rpmbuild/RPMS" -name '*.rpm' -exec cp {} "${WORKDIR}/rpm/" \;
