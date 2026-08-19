@@ -380,6 +380,26 @@ skip_rpath_for_bundled_binaries(){
     done
 }
 
+apply_upstream_backports(){
+    local src_tree="$1" p name applied=0
+    local dir="${SCRIPT_DIR}/patches/backports"
+    [ -d "${dir}" ] || return 0
+
+    for p in "${dir}"/*.patch; do
+        [ -f "${p}" ] || continue
+        name=$(basename "${p}")
+        if ( cd "${src_tree}" && patch -p1 -N --dry-run < "${p}" ) >/dev/null 2>&1; then
+            ( cd "${src_tree}" && patch -p1 -N < "${p}" ) >/dev/null \
+                || die "upstream backport ${name} failed to apply"
+            echo "Applied upstream backport ${name}"
+            applied=$((applied + 1))
+        else
+            echo "NOTE: upstream backport ${name} does not apply to ${SHELL_BRANCH}; assuming it is already included"
+        fi
+    done
+    echo "Applied ${applied} upstream backport(s)"
+}
+
 apply_percona_patches(){
     local src_tree="$1"
     local series dir
@@ -435,6 +455,9 @@ get_sources(){
     REVISION=$(git rev-parse --short HEAD)
     cd "${WORKDIR}"
 
+    # build fixes from later upstream releases; these apply regardless of
+    # --apply_patches because without them the build fails on some distributions
+    apply_upstream_backports "${WORKDIR}/mysql-shell"
     apply_percona_patches "${WORKDIR}/mysql-shell"
     skip_rpath_for_bundled_binaries "${WORKDIR}/mysql-shell"
 
