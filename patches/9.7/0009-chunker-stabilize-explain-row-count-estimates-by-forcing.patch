@@ -1,0 +1,125 @@
+From 4b62d970e48e356a892bdbf5cb94a384f16d6c38 Mon Sep 17 00:00:00 2001
+From: Kamil Holubicki <kamil.holubicki@percona.com>
+Date: Thu, 14 May 2026 15:11:40 +0200
+Subject: [PATCH 9/9] Chunker: stabilize EXPLAIN row-count estimates by forcing
+ the chunking index in adaptive_step_v2
+
+Problem:
+When chunking integer columns with adaptiveStepStrategy: "enhanced",
+adaptive_step_v2() asks the server for a per-range row-count estimate
+via EXPLAIN FORMAT=JSON SELECT COUNT(*) and uses that estimate to drive
+a binary chop on the chunking range. This relies on the estimate being
+roughly monotonic in the range width.
+In practice, on tables with composite keys and additional secondary
+indexes covering a leading key part, the optimizer can pick a different
+access path for the EXPLAIN'd COUNT(*) than the index the chunker is
+iterating on (e.g. a `ref` lookup on a shorter index that ignores the
+BETWEEN predicate on a later key part). When that happens, EXPLAIN
+returns a constant cardinality (~ rows for the leading key part)
+regardless of the BETWEEN range, while for narrower ranges it can flip
+to the primary key and report 0. The chop loop sees this 0/N flapping,
+its `left` cursor is raised on the first false "expand" probe, and the
+loop exits via `left >= right` with rows == 0 and a wide step. Because
+new_step != 1, the deep-chunking branch (chunk by next key part) is
+never entered and the chunk is emitted as one big slice.
+Solution:
+Pin the EXPLAIN COUNT(*) probe in adaptive_step_v2() to the same index
+the chunker is iterating on by appending a FORCE INDEX (...) clause
+after the table reference. With that, EXPLAIN's `rows` is the
+records_in_range estimate against the chunking index, monotone in the
+range width (modulo small dive noise). The chop converges to range 1
+when the range really is too big, which lets the existing
+deep-chunking path engage on the next key part as designed.
+The change is intentionally narrow:
+  * only adaptive_step_v2 (the "enhanced" strategy);
+  * only the EXPLAIN probe (not the dump-data SELECT, not the boundary
+    SELECTs in chunk_column / chunk_non_integer_column, not the
+    original adaptive_step v1);
+  * only the integer column path (adaptive_step_v2 is reachable only
+    from chunk_integer_column).
+To carry the index name into the chunker, Instance_cache::Index gains
+a quoted_name() accessor populated via set_name() at build time from
+the index map key in the cache. A small helper force_index_clause() in
+dumper.cc formats the clause and returns "" when the table has no
+usable chunking index, so behavior is unchanged in that case.
+---
+ modules/util/dump/dumper.cc         | 14 ++++++++++++++
+ modules/util/dump/instance_cache.cc |  5 +++++
+ modules/util/dump/instance_cache.h  |  6 ++++++
+ 3 files changed, 25 insertions(+)
+
+diff --git a/modules/util/dump/dumper.cc b/modules/util/dump/dumper.cc
+index 2807f9582e..d1eef61698 100644
+--- a/modules/util/dump/dumper.cc
++++ b/modules/util/dump/dumper.cc
+@@ -190,6 +190,19 @@ std::string quote(const std::string &schema, const std::string &table) {
+          shcore::quote_identifier(table);
+ }
+ 
++// Returns a `FORCE INDEX (...)` clause (with leading space) that pins the query
++// to the index used by the chunker, or an empty string when no index is in use.
++// Used by the EXPLAIN COUNT(*) probes in `adaptive_step_v2` for the integer
++// chunking path, to stabilize optimizer row-count estimates - without it, the
++// optimizer may pick a different access path (e.g. a `ref` lookup on a shorter
++// index that ignores the BETWEEN predicate on a later key part), making the
++// EXPLAIN row counts non-monotonic in the range width and breaking the binary
++// chop loop.
++std::string force_index_clause(const Instance_cache::Index *index) {
++  if (!index) return {};
++  return " FORCE INDEX (" + index->quoted_name() + ")";
++}
++
+ Row fetch_row(const mysqlshdk::db::IRow *row) {
+   Row result;
+ 
+@@ -1703,6 +1716,7 @@ class Dumper::Table_worker final {
+           query("EXPLAIN FORMAT=JSON SELECT " +
+                 m_dumper->optimizer_hints(info.table->info) + "COUNT(*) FROM " +
+                 info.table->quoted_name + info.partition +
++                force_index_clause(info.table->index.info) +
+                 where(*info.table, between(info, begin, end)) + info.order_by +
+                 comment)
+               ->fetch_one_or_throw()
+diff --git a/modules/util/dump/instance_cache.cc b/modules/util/dump/instance_cache.cc
+index 116d40f62e..4fe9ff9aee 100644
+--- a/modules/util/dump/instance_cache.cc
++++ b/modules/util/dump/instance_cache.cc
+@@ -133,6 +133,10 @@ void Instance_cache::Index::add_column(const Column *column) {
+   m_columns_sql += column->quoted_name;
+ }
+ 
++void Instance_cache::Index::set_name(const std::string &name) {
++  m_quoted_name = shcore::quote_identifier(name);
++}
++
+ Instance_cache_builder::Instance_cache_builder(
+     const std::shared_ptr<mysqlshdk::db::ISession> &session,
+     const mysqlshdk::db::Filtering_options &filters, Instance_cache &&cache)
+@@ -839,6 +843,7 @@ void Instance_cache_builder::fetch_table_indexes() {
+         }
+ 
+         if (add_index) {
++          new_index.set_name(index.first);
+           auto ptr = &t.indexes.emplace(index.first, std::move(new_index))
+                           .first->second;
+ 
+diff --git a/modules/util/dump/instance_cache.h b/modules/util/dump/instance_cache.h
+index 470e6554e3..a425dc7f71 100644
+--- a/modules/util/dump/instance_cache.h
++++ b/modules/util/dump/instance_cache.h
+@@ -86,9 +86,15 @@ struct Instance_cache {
+ 
+     inline const std::string &columns_sql() const { return m_columns_sql; }
+ 
++    inline const std::string &quoted_name() const { return m_quoted_name; }
++
++    void set_name(const std::string &name);
++
+     void add_column(const Column *column);
+ 
+    private:
++    std::string m_quoted_name;
++
+     std::vector<const Column *> m_columns;
+ 
+     std::string m_columns_sql;

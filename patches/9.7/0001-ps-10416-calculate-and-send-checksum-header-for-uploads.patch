@@ -1,0 +1,43 @@
+From 077e4e3cfb2260ffd193ae833a35797e459fd3d5 Mon Sep 17 00:00:00 2001
+From: Kamil Holubicki <kamil.holubicki@percona.com>
+Date: Thu, 23 Apr 2026 12:54:24 +0200
+Subject: [PATCH 1/9] PS-10416: Calculate and send checksum header for uploads
+ to support S3 Object Lock
+
+https://perconadev.atlassian.net/browse/PS-10416
+
+Object Lock feature of the AWS S3 requires Content-MD5 request header
+to be present in the PUT request.
+
+Added calculation of this header. It is calculated always, as it
+simplifies the logic and does not cause any harm even if not needed.
+---
+ mysqlshdk/libs/storage/backend/object_storage_bucket.cc | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/mysqlshdk/libs/storage/backend/object_storage_bucket.cc b/mysqlshdk/libs/storage/backend/object_storage_bucket.cc
+index 9409efc1c5..1e5ab57865 100644
+--- a/mysqlshdk/libs/storage/backend/object_storage_bucket.cc
++++ b/mysqlshdk/libs/storage/backend/object_storage_bucket.cc
+@@ -32,6 +32,8 @@
+ 
+ #include "mysqlshdk/libs/utils/fault_injection.h"
+ #include "mysqlshdk/libs/utils/logger.h"
++#include "mysqlshdk/libs/utils/utils_encoding.h"
++#include "mysqlshdk/libs/utils/utils_ssl.h"
+ 
+ namespace mysqlshdk {
+ namespace storage {
+@@ -157,6 +159,11 @@ void Container::put_object(const std::string &object_name, const char *data,
+                            size_t size) {
+   Headers headers{{"content-type", "application/octet-stream"}};
+ 
++  auto &md5 = headers["Content-MD5"];
++  std::string_view data_view(data, size);
++  const auto hash = shcore::ssl::restricted::md5(data_view);
++  shcore::encode_base64(hash.data(), hash.size(), &md5);
++
+   auto request = put_object_request(object_name, std::move(headers));
+   request.body = data;
+   request.size = size;
+

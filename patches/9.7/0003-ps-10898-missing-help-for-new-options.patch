@@ -1,0 +1,375 @@
+From ece24b1b0e19ff5022d36aa2d9569a6353cc34b9 Mon Sep 17 00:00:00 2001
+From: Kamil Holubicki <kamil.holubicki@percona.com>
+Date: Thu, 23 Apr 2026 12:58:33 +0200
+Subject: [PATCH 3/9] PS-10898: Missing help for new options
+
+https://perconadev.atlassian.net/browse/PS-10898
+---
+ modules/util/mod_util.cc                      | 13 ++++
+ .../js_shell/validation/cli_help_norecord.js  | 64 +++++++++++++++++++
+ .../js_shell/validation/util_help_norecord.js | 36 +++++++++++
+ .../py_shell/validation/util_help_norecord.py | 36 +++++++++++
+ 4 files changed, 149 insertions(+)
+
+diff --git a/modules/util/mod_util.cc b/modules/util/mod_util.cc
+index 900cc44dbd..87c9e89252 100644
+--- a/modules/util/mod_util.cc
++++ b/modules/util/mod_util.cc
+@@ -1806,6 +1806,12 @@ compatibility issues with MySQL HeatWave Service.
+ number of bytes to be written to each chunk file, enables <b>chunking</b>.
+ @li <b>threads</b>: int (default: 4) - Use N threads to dump data chunks from
+ the server.
++@li <b>adaptiveStepStrategy</b>: string (default: original) - Select which
++algorithm to use for chunk boundary calculation. Set to “original” for
++the legacy algorithm or “enhanced” for the new algorithm.
++@li <b>maxKeyPrefixLength</b>: int (default: 1) - Define how many primary key
++columns, starting from the left, are used for chunking. Set to 0 for no limit.
++If the value exceeds the key’s length, the entire key is used.
+ )*");
+ 
+ REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMPRESSION, R"*(
+@@ -2430,6 +2436,13 @@ number of bytes to be copied in each chunk, enables <b>chunking</b>.
+ the source server and additional N threads to write the data to the target
+ server.
+ 
++@li <b>adaptiveStepStrategy</b>: string (default: original) - Select which
++algorithm to use for chunk boundary calculation. Set to “original” for
++the legacy algorithm or “enhanced” for the new algorithm.
++@li <b>maxKeyPrefixLength</b>: int (default: 1) - Define how many primary key
++columns, starting from the left, are used for chunking. Set to 0 for no limit.
++If the value exceeds the key’s length, the entire key is used.
++
+ @li <b>maxRate</b>: string (default: "0") - Limit data read throughput to
+ maximum rate, measured in bytes per second per thread. Use maxRate="0" to set no
+ limit.
+diff --git a/unittest/scripts/auto/js_shell/validation/cli_help_norecord.js b/unittest/scripts/auto/js_shell/validation/cli_help_norecord.js
+index c5cbdbaf63..c26b443ffa 100644
+--- a/unittest/scripts/auto/js_shell/validation/cli_help_norecord.js
++++ b/unittest/scripts/auto/js_shell/validation/cli_help_norecord.js
+@@ -344,6 +344,11 @@ OPTIONS
+             with masking policies will result in an error. When enabled,
+             downgrades this error to a warning. Default: false.
+ 
++--adaptiveStepStrategy=<str>
++            Select which algorithm to use for chunk boundary calculation. Set
++            to “original” for the legacy algorithm or “enhanced” for
++            the new algorithm. Default: original.
++
+ --analyzeTables=<str>
+             "off", "on", "histogram" (default: off) - If 'on', executes ANALYZE
+             TABLE for all tables, once copied. If set to 'histogram', only
+@@ -498,6 +503,11 @@ OPTIONS
+             (Megabytes), G (Gigabytes). Minimum value: 4096. Default: the value
+             of bytesPerChunk.
+ 
++--maxKeyPrefixLength=<uint>
++            Define how many primary key columns, starting from the left, are
++            used for chunking. Set to 0 for no limit. If the value exceeds the
++            key’s length, the entire key is used. Default: 1.
++
+ --maxRate=<str>
+             Limit data read throughput to maximum rate, measured in bytes per
+             second per thread. Use maxRate="0" to set no limit. Default: "0".
+@@ -578,6 +588,11 @@ OPTIONS
+             with masking policies will result in an error. When enabled,
+             downgrades this error to a warning. Default: false.
+ 
++--adaptiveStepStrategy=<str>
++            Select which algorithm to use for chunk boundary calculation. Set
++            to “original” for the legacy algorithm or “enhanced” for
++            the new algorithm. Default: original.
++
+ --analyzeTables=<str>
+             "off", "on", "histogram" (default: off) - If 'on', executes ANALYZE
+             TABLE for all tables, once copied. If set to 'histogram', only
+@@ -712,6 +727,11 @@ OPTIONS
+             (Megabytes), G (Gigabytes). Minimum value: 4096. Default: the value
+             of bytesPerChunk.
+ 
++--maxKeyPrefixLength=<uint>
++            Define how many primary key columns, starting from the left, are
++            used for chunking. Set to 0 for no limit. If the value exceeds the
++            key’s length, the entire key is used. Default: 1.
++
+ --maxRate=<str>
+             Limit data read throughput to maximum rate, measured in bytes per
+             second per thread. Use maxRate="0" to set no limit. Default: "0".
+@@ -785,6 +805,11 @@ WHERE
+                       establish a connection to the target instance.
+ 
+ OPTIONS
++--adaptiveStepStrategy=<str>
++            Select which algorithm to use for chunk boundary calculation. Set
++            to “original” for the legacy algorithm or “enhanced” for
++            the new algorithm. Default: original.
++
+ --all=<bool>
+             Copy all views and tables from the specified schema, requires the
+             tables argument to be an empty list. Default: false.
+@@ -891,6 +916,11 @@ OPTIONS
+             (Megabytes), G (Gigabytes). Minimum value: 4096. Default: the value
+             of bytesPerChunk.
+ 
++--maxKeyPrefixLength=<uint>
++            Define how many primary key columns, starting from the left, are
++            used for chunking. Set to 0 for no limit. If the value exceeds the
++            key’s length, the entire key is used. Default: 1.
++
+ --maxRate=<str>
+             Limit data read throughput to maximum rate, measured in bytes per
+             second per thread. Use maxRate="0" to set no limit. Default: "0".
+@@ -1066,6 +1096,11 @@ OPTIONS
+             with masking policies will result in an error. When enabled,
+             downgrades this error to a warning. Default: false.
+ 
++--adaptiveStepStrategy=<str>
++            Select which algorithm to use for chunk boundary calculation. Set
++            to “original” for the legacy algorithm or “enhanced” for
++            the new algorithm. Default: original.
++
+ --azureConfigFile=<str>
+             Use the specified Azure configuration file instead of the one at
+             the default location. Default: not set.
+@@ -1230,6 +1265,11 @@ OPTIONS
+             SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+             Statement". Default: "\n".
+ 
++--maxKeyPrefixLength=<uint>
++            Define how many primary key columns, starting from the left, are
++            used for chunking. Set to 0 for no limit. If the value exceeds the
++            key’s length, the entire key is used. Default: 1.
++
+ --maxRate=<str>
+             Limit data read throughput to maximum rate, measured in bytes per
+             second per thread. Use maxRate="0" to set no limit. Default: "0".
+@@ -1344,6 +1384,11 @@ OPTIONS
+             with masking policies will result in an error. When enabled,
+             downgrades this error to a warning. Default: false.
+ 
++--adaptiveStepStrategy=<str>
++            Select which algorithm to use for chunk boundary calculation. Set
++            to “original” for the legacy algorithm or “enhanced” for
++            the new algorithm. Default: original.
++
+ --azureConfigFile=<str>
+             Use the specified Azure configuration file instead of the one at
+             the default location. Default: not set.
+@@ -1488,6 +1533,11 @@ OPTIONS
+             SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+             Statement". Default: "\n".
+ 
++--maxKeyPrefixLength=<uint>
++            Define how many primary key columns, starting from the left, are
++            used for chunking. Set to 0 for no limit. If the value exceeds the
++            key’s length, the entire key is used. Default: 1.
++
+ --maxRate=<str>
+             Limit data read throughput to maximum rate, measured in bytes per
+             second per thread. Use maxRate="0" to set no limit. Default: "0".
+@@ -1597,6 +1647,11 @@ WHERE
+       tables: List of tables/views to be dumped.
+ 
+ OPTIONS
++--adaptiveStepStrategy=<str>
++            Select which algorithm to use for chunk boundary calculation. Set
++            to “original” for the legacy algorithm or “enhanced” for
++            the new algorithm. Default: original.
++
+ --all=<bool>
+             Dump all views and tables from the specified schema. Default:
+             false.
+@@ -1713,6 +1768,11 @@ OPTIONS
+             SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+             Statement". Default: "\n".
+ 
++--maxKeyPrefixLength=<uint>
++            Define how many primary key columns, starting from the left, are
++            used for chunking. Set to 0 for no limit. If the value exceeds the
++            key’s length, the entire key is used. Default: 1.
++
+ --maxRate=<str>
+             Limit data read throughput to maximum rate, measured in bytes per
+             second per thread. Use maxRate="0" to set no limit. Default: "0".
+@@ -1823,6 +1883,8 @@ OPTIONS
+             with masking policies will result in an error. When enabled,
+             downgrades this error to a warning. Default: false.
+ 
++--adaptiveStepStrategy=<str>
++
+ --azureConfigFile=<str>
+             Use the specified Azure configuration file instead of the one at
+             the default location. Default: not set.
+@@ -1878,6 +1940,8 @@ OPTIONS
+             SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+             Statement". Default: "\n".
+ 
++--maxKeyPrefixLength=<uint>
++
+ --maxRate=<str>
+             Limit data read throughput to maximum rate, measured in bytes per
+             second per thread. Use maxRate="0" to set no limit. Default: "0".
+diff --git a/unittest/scripts/auto/js_shell/validation/util_help_norecord.js b/unittest/scripts/auto/js_shell/validation/util_help_norecord.js
+index 2a14f8aba1..5ab8fbd956 100644
+--- a/unittest/scripts/auto/js_shell/validation/util_help_norecord.js
++++ b/unittest/scripts/auto/js_shell/validation/util_help_norecord.js
+@@ -298,6 +298,12 @@ DESCRIPTION
+       - threads: int (default: 4) - Use N threads to read the data from the
+         source server and additional N threads to write the data to the target
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - maxRate: string (default: "0") - Limit data read throughput to maximum
+         rate, measured in bytes per second per thread. Use maxRate="0" to set
+         no limit.
+@@ -455,6 +461,12 @@ DESCRIPTION
+       - threads: int (default: 4) - Use N threads to read the data from the
+         source server and additional N threads to write the data to the target
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - maxRate: string (default: "0") - Limit data read throughput to maximum
+         rate, measured in bytes per second per thread. Use maxRate="0" to set
+         no limit.
+@@ -595,6 +607,12 @@ DESCRIPTION
+       - threads: int (default: 4) - Use N threads to read the data from the
+         source server and additional N threads to write the data to the target
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - maxRate: string (default: "0") - Limit data read throughput to maximum
+         rate, measured in bytes per second per thread. Use maxRate="0" to set
+         no limit.
+@@ -891,6 +909,12 @@ DESCRIPTION
+         of bytes to be written to each chunk file, enables chunking.
+       - threads: int (default: 4) - Use N threads to dump data chunks from the
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - fieldsTerminatedBy: string (default: "\t") - This option has the same
+         meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+       - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+@@ -1363,6 +1387,12 @@ DESCRIPTION
+         of bytes to be written to each chunk file, enables chunking.
+       - threads: int (default: 4) - Use N threads to dump data chunks from the
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - fieldsTerminatedBy: string (default: "\t") - This option has the same
+         meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+       - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+@@ -1806,6 +1836,12 @@ DESCRIPTION
+         of bytes to be written to each chunk file, enables chunking.
+       - threads: int (default: 4) - Use N threads to dump data chunks from the
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - fieldsTerminatedBy: string (default: "\t") - This option has the same
+         meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+       - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+diff --git a/unittest/scripts/auto/py_shell/validation/util_help_norecord.py b/unittest/scripts/auto/py_shell/validation/util_help_norecord.py
+index c672dd4f86..2250d68530 100644
+--- a/unittest/scripts/auto/py_shell/validation/util_help_norecord.py
++++ b/unittest/scripts/auto/py_shell/validation/util_help_norecord.py
+@@ -298,6 +298,12 @@
+       - threads: int (default: 4) - Use N threads to read the data from the
+         source server and additional N threads to write the data to the target
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - maxRate: string (default: "0") - Limit data read throughput to maximum
+         rate, measured in bytes per second per thread. Use maxRate="0" to set
+         no limit.
+@@ -455,6 +461,12 @@
+       - threads: int (default: 4) - Use N threads to read the data from the
+         source server and additional N threads to write the data to the target
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - maxRate: string (default: "0") - Limit data read throughput to maximum
+         rate, measured in bytes per second per thread. Use maxRate="0" to set
+         no limit.
+@@ -595,6 +607,12 @@
+       - threads: int (default: 4) - Use N threads to read the data from the
+         source server and additional N threads to write the data to the target
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - maxRate: string (default: "0") - Limit data read throughput to maximum
+         rate, measured in bytes per second per thread. Use maxRate="0" to set
+         no limit.
+@@ -892,6 +910,12 @@
+         of bytes to be written to each chunk file, enables chunking.
+       - threads: int (default: 4) - Use N threads to dump data chunks from the
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - fieldsTerminatedBy: string (default: "\t") - This option has the same
+         meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+       - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+@@ -1364,6 +1388,12 @@
+         of bytes to be written to each chunk file, enables chunking.
+       - threads: int (default: 4) - Use N threads to dump data chunks from the
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - fieldsTerminatedBy: string (default: "\t") - This option has the same
+         meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+       - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+@@ -1807,6 +1837,12 @@
+         of bytes to be written to each chunk file, enables chunking.
+       - threads: int (default: 4) - Use N threads to dump data chunks from the
+         server.
++      - adaptiveStepStrategy: string (default: original) - Select which
++        algorithm to use for chunk boundary calculation. Set to “original”
++        for the legacy algorithm or “enhanced” for the new algorithm.
++      - maxKeyPrefixLength: int (default: 1) - Define how many primary key
++        columns, starting from the left, are used for chunking. Set to 0 for no
++        limit. If the value exceeds the key’s length, the entire key is used.
+       - fieldsTerminatedBy: string (default: "\t") - This option has the same
+         meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+       - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+

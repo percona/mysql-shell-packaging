@@ -1,0 +1,16 @@
+fetched_at: 2026-08-19T05:31:55Z
+sources:
+  - url: https://github.com/mysql/mysql-shell/compare/9.7...kamil-holubicki:mysql-shell:PS-10413_and_PS-10416_9.7.patch
+    sha256: 53d19073d70d8485728888b977ce5ed442652bfd1038c1696fd5b7c52ace8008
+    commits: 9
+combined_sha256: 53d19073d70d8485728888b977ce5ed442652bfd1038c1696fd5b7c52ace8008
+generated_patches:
+  0001-ps-10416-calculate-and-send-checksum-header-for-uploads.patch  819a7608c2286ad918b878387e9401064b3a61e7bb029541ad8c0ae3abb579bf
+  0002-ps-10413-improve-chunking-strategy-for-tables-with-the.patch  e8bb648acd4cd68513e47afe02195c02dabf6d959c29296d6fc8a72f6040ec2e
+  0003-ps-10898-missing-help-for-new-options.patch  68c9849eecbb4fae8cc20bea44f29bc380190f9995af21db5534dce1685a61b3
+  0004-ps-10897-util-dumpinstance-o-p-shows-incorrect-no-of.patch  f24db98c111ae677eb921e0ce596e030996a0c2251e79b3edc82f860e212780d
+  0005-ps-10922-chunking-errors-when-partitioned-tables-w.patch  00a1d6d41b78485f80959a471ccd6e3bb2c446395cf421f39a44bd7118d7d2a7
+  0006-ps-10933-dumpinstance-when-chunking-false-skip.patch  a38eaeae82f8a9c71eb6dbca900268e7069310e37824efa1caa14e6330b92659
+  0007-addressed-review-comments.patch  77759f5c716228c662d25c75b3f824bdde3ed051b1120141caa482628ea3a6bc
+  0008-1-addressed-review-comments-2-the-project-default.patch  af45ea981dbf169d4d9a77ba9631cfca760043fc65a3c7faf3995aa1fe22c45a
+  0009-chunker-stabilize-explain-row-count-estimates-by-forcing.patch  56f3abc1e9027d1e2dde95ea6ba64bdad37fa81a1469b50a8030f8190d52d89d
