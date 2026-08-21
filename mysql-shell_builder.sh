@@ -139,12 +139,14 @@ shell_series(){
 }
 
 add_percona_yum_repo(){
-    curl -sL -o /etc/yum.repos.d/percona-dev.repo \
+    curl -sL --connect-timeout 15 --max-time 60 --retry 2 \
+        -o /etc/yum.repos.d/percona-dev.repo \
         https://jenkins.percona.com/yum-repo/percona-dev.repo || true
 }
 
 add_percona_apt_repo(){
-    wget -qO - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add - 2>/dev/null || true
+    wget -q --timeout=15 --tries=2 -O - http://jenkins.percona.com/apt-repo/8507EFA5.pub \
+        | apt-key add - 2>/dev/null || true
     echo "deb http://jenkins.percona.com/apt-repo/ @@DIST@@ main" \
         | sed "s:@@DIST@@:$OS_NAME:g" > /etc/apt/sources.list.d/percona-dev.list
     apt-get update -qq || true
@@ -356,7 +358,8 @@ build_database(){
         -DWITH_AUTHENTICATION_CLIENT_PLUGINS=YES \
         -DWITH_TIRPC=bundled \
         "${db_flags[@]}" \
-        -DDOWNLOAD_BOOST=1 -DWITH_BOOST="${WORKDIR}/boost" || die "database cmake failed"
+        -DDOWNLOAD_BOOST=1 -DWITH_BOOST="${WORKDIR}/boost" 2>&1 \
+        | tee "${DB_SOURCE_DIR}/bld/configure.log" || die "database cmake failed"
 
     cmake --build . --parallel "$(nproc)" --target \
         mysqlclient mysqlxclient mysqlxclient_lite libprotobuf-lite \
@@ -382,6 +385,9 @@ build_database(){
     find . -name 'libfido2.so*' | sed 's|^|  |' | sort
 
     if [ -z "$(find . -name 'libfido2.so*' -print -quit)" ]; then
+        echo "FIDO and libudev decisions from the server configure:"
+        grep -iE "fido|libudev|udev_system_library" "${DB_SOURCE_DIR}/bld/configure.log" \
+            | head -20 | sed 's|^|  |'
         die "the server build produced no libfido2. The packaging lists it unconditionally, so dh_install and the rpm %files would fail later with a missing file instead of pointing here"
     fi
     cd "${WORKDIR}"
