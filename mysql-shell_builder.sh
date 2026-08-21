@@ -380,6 +380,10 @@ build_database(){
     find . -name 'authentication_*_client.so' -o -name 'mysql_native_password.so' \
         | sed 's|.*/|  |' | sort
     find . -name 'libfido2.so*' | sed 's|^|  |' | sort
+
+    if [ -z "$(find . -name 'libfido2.so*' -print -quit)" ]; then
+        die "the server build produced no libfido2. The packaging lists it unconditionally, so dh_install and the rpm %files would fail later with a missing file instead of pointing here"
+    fi
     cd "${WORKDIR}"
 }
 
