@@ -4,6 +4,39 @@ shell_quote_string() {
     echo "$1" | sed -e 's,\([^a-zA-Z0-9/_.=-]\),\\\1,g'
 }
 
+# Clones $1 (optionally into directory $2) retrying with backoff on failure.
+# Transient GitHub auth/rate-limit hiccups (e.g. "could not read Username ...
+# No such device or address" from many parallel unauthenticated clones)
+# should not fail the whole build on the first bad attempt.
+git_clone_with_retry() {
+    repo_url="$1"
+    dest_dir="$2"
+    max_attempts=10
+    attempt=1
+    delay=15
+    while [ $attempt -le $max_attempts ]; do
+        echo "Cloning ${repo_url} (attempt ${attempt}/${max_attempts})..."
+        if [ -n "$dest_dir" ]; then
+            rm -rf "$dest_dir"
+            GIT_TERMINAL_PROMPT=0 git clone "$repo_url" "$dest_dir"
+        else
+            GIT_TERMINAL_PROMPT=0 git clone "$repo_url"
+        fi
+        clone_retval=$?
+        if [ $clone_retval = 0 ]; then
+            return 0
+        fi
+        if [ $attempt -lt $max_attempts ]; then
+            echo "Clone attempt ${attempt}/${max_attempts} failed (exit ${clone_retval}). Retrying in ${delay}s..."
+            sleep $delay
+        fi
+        attempt=$((attempt + 1))
+        delay=$((delay * 2))
+    done
+    echo "Failed to clone ${repo_url} after ${max_attempts} attempts"
+    return $clone_retval
+}
+
 usage () {
     cat <<EOF
 Usage: $0 [OPTIONS]
@@ -132,7 +165,8 @@ get_cmake(){
 
 get_antlr4-runtime(){
     cd "${WORKDIR}"
-    git clone https://github.com/antlr/antlr4.git
+    rm -rf antlr4
+    git_clone_with_retry https://github.com/antlr/antlr4.git
     cd antlr4/runtime/Cpp
     git checkout 4.13.2
     mkdir -p build && mkdir -p run && cd build
@@ -201,11 +235,11 @@ get_database(){
     if [ -d percona-server ]; then
         rm -rf percona-server
     fi
-    git clone "${REPO}"
+    git_clone_with_retry "${REPO}"
     retval=$?
     if [ $retval != 0 ]
     then
-        echo "There were some issues during repo cloning from github. Please retry one more time"
+        echo "There were some issues during repo cloning from github, even after retries. Please retry one more time"
         exit 1
     fi
     repo_name=$(echo $REPO | awk -F'/' '{print $NF}' | awk -F'.' '{print $1}')
@@ -450,11 +484,11 @@ get_sources(){
             source /opt/rh/rh-python38/enable
         fi
     fi
-    git clone "$SHELL_REPO"
+    git_clone_with_retry "$SHELL_REPO"
     retval=$?
     if [ $retval != 0 ]
     then
-        echo "There were some issues during repo cloning from github. Please retry one more time"
+        echo "There were some issues during repo cloning from github, even after retries. Please retry one more time"
         exit 1
     fi
     REVISION=$(git rev-parse --short HEAD)
@@ -463,15 +497,25 @@ get_sources(){
     then
         git reset --hard
         git clean -xdf
-        git checkout tags/"$SHELL_BRANCH"
-        if [[ ${SHELL_BRANCH:0:1} = 9 ]]; then
-            #curl -L https://github.com/kamil-holubicki/mysql-shell/pull/2.patch -o PS-10413.patch
-            #curl -L https://github.com/kamil-holubicki/mysql-shell/compare/9.6...PS-10413_and_PS-10416.patch -o PS-10413.patch
-            curl -L https://github.com/mysql/mysql-shell/compare/9.7...kamil-holubicki:mysql-shell:PS-10413_and_PS-10416_9.7.patch -o PS-10413.patch
-            git apply --stat PS-10413.patch
-            patch -p1 -N --fuzz=3 < PS-10413.patch
-            git diff mysqlshdk/libs/storage/backend/object_storage_bucket.cc
+        git checkout tags/"$SHELL_BRANCH" 2>/dev/null
+        if [ $? != 0 ]; then
+            echo "Tag $SHELL_BRANCH not found, trying to checkout as a branch"
+            git checkout "$SHELL_BRANCH"
+            if [ $? != 0 ]; then
+                echo "Could not checkout $SHELL_BRANCH as either a tag or a branch"
+                exit 1
+            fi
         fi
+        if [[ ${SHELL_BRANCH:0:1} = 9 ]]; then
+            echo "Appling a patch"
+            #curl -L https://github.com/mysql/mysql-shell/compare/9.7...kamil-holubicki:mysql-shell:PS-10413_and_PS-10416_9.7.patch -o PS-10413.patch
+            #git apply --stat PS-10413.patch
+            #patch -p1 -N --fuzz=3 < PS-10413.patch
+        fi
+    fi
+    if [ -f MYSQL_VERSION ]; then
+        source MYSQL_VERSION
+        SHELL_BRANCH="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}"
     fi
     if [ -z "${DESTINATION:-}" ]; then
         export DESTINATION=experimental
@@ -532,7 +576,8 @@ get_sources(){
 }
 
 build_oci_sdk(){
-    git clone https://github.com/oracle/oci-python-sdk.git
+    rm -rf oci-python-sdk
+    git_clone_with_retry https://github.com/oracle/oci-python-sdk.git
     cd oci-python-sdk/
     git checkout v2.6.2
     if [ "x$OS_NAME" = "buster" ]; then
@@ -984,7 +1029,7 @@ install_deps() {
     fi
     if [ ! -d /usr/local/percona-subunit2junitxml ]; then
         cd /usr/local
-        git clone https://github.com/percona/percona-subunit2junitxml.git
+        git_clone_with_retry https://github.com/percona/percona-subunit2junitxml.git
         rm -rf /usr/bin/subunit2junitxml
         ln -s /usr/local/percona-subunit2junitxml/subunit2junitxml /usr/bin/subunit2junitxml
         cd ${CURPLACE}
@@ -1084,6 +1129,22 @@ build_srpm(){
         source /opt/rh/rh-python38/enable
     fi
     cd $WORKDIR
+    rm -rf mysql_version_src
+    git clone --depth 1 --filter=blob:none --no-checkout --single-branch --branch "$SHELL_BRANCH" "$SHELL_REPO" mysql_version_src
+    (
+        cd mysql_version_src
+        git sparse-checkout init --cone
+        git sparse-checkout set MYSQL_VERSION
+        git checkout "$SHELL_BRANCH"
+    )
+    if [ -f mysql_version_src/MYSQL_VERSION ]; then
+        cp mysql_version_src/MYSQL_VERSION "$WORKDIR/MYSQL_VERSION"
+    fi
+    rm -rf mysql_version_src
+    if [ -f MYSQL_VERSION ]; then
+        source MYSQL_VERSION
+        SHELL_BRANCH="${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR}.${MYSQL_VERSION_PATCH}"
+    fi
     get_tar "source_tarball"
     rm -fr rpmbuild
     ls | grep -v percona-mysql-shell-*.tar.* | grep -v protobuf | xargs rm -rf
