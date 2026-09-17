@@ -152,7 +152,7 @@ get_cmake(){
         apt -y purge cmake*
         apt-get -y install build-essential
     fi
-    wget -nv --no-check-certificate http://www.cmake.org/files/v${CMAKE_VERSION::(${#CMAKE_VERSION}-2)}/cmake-${CMAKE_VERSION}.tar.gz
+    wget -nv --no-check-certificate https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz
     tar xf cmake-${CMAKE_VERSION}.tar.gz
     cd cmake-${CMAKE_VERSION}
     ./configure
@@ -263,7 +263,7 @@ get_database(){
         if [ "x$OS_NAME" = "xresolute" ]; then
             export DEB_CPPFLAGS_STRIP="-D_FORTIFY_SOURCE=3"
         fi
-        if [ ${SHELL_BRANCH:0:1} = 9 ]; then
+        if [ ${SHELL_BRANCH:0:1} = 9 -o ${SHELL_BRANCH:0:1} = 2 ]; then
             pushd router/src/routing_guidelines/src
             /usr/bin/bison -t --no-lines --warnings=all,no-yacc,no-precedence --defines=parser.h --verbose -o parser.cc parser.yy
             ls
@@ -389,7 +389,7 @@ get_database(){
     if [ ${SHELL_BRANCH:2:1} != 0 ]; then
         cmake --build . --target authentication_webauthn_client -j$(nproc)
     fi
-    if [ ${SHELL_BRANCH:0:1} = 9 ]; then
+    if [ ${SHELL_BRANCH:0:1} = 9 -o ${SHELL_BRANCH:0:1} = 2 ]; then
         cmake --build . --target authentication_openid_connect_client -j$(nproc)
         cmake --build . --target mysql_native_password -j$(nproc)
         cmake --build . --target mysqlbinlog -j$(nproc)
@@ -506,7 +506,7 @@ get_sources(){
                 exit 1
             fi
         fi
-        if [[ ${SHELL_BRANCH:0:1} = 9 ]]; then
+        if [[ ${SHELL_BRANCH:0:1} = 9 || ${SHELL_BRANCH:0:1} = 2 ]]; then
             echo "Appling a patch"
             #curl -L https://github.com/mysql/mysql-shell/compare/9.7...kamil-holubicki:mysql-shell:PS-10413_and_PS-10416_9.7.patch -o PS-10413.patch
             #git apply --stat PS-10413.patch
@@ -815,7 +815,7 @@ install_deps() {
             yum -y install libudev-devel
             if [ "x$RHEL" = "x8" ]; then
                 yum -y install MySQL-python
-                if [[ ${SHELL_BRANCH:0:1} = 9 ]]; then
+                if [[ ${SHELL_BRANCH:0:1} = 9 || ${SHELL_BRANCH:0:1} = 2 ]]; then
                     yum -y install gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ gcc-toolset-14-binutils # gcc-toolset-10-annobin
                     yum -y install gcc-toolset-14-annobin-annocheck gcc-toolset-14-annobin-plugin-gcc
                     update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-14/root/bin/gcc 80
@@ -847,7 +847,7 @@ install_deps() {
                     mv /usr/bin/gcc /usr/bin/gcc.orig
                     mv /usr/bin/c++ /usr/bin/c++.orig
                     mv /usr/bin/g++ /usr/bin/g++.orig
-                    if [ ${SHELL_BRANCH:0:1} = 9 ]; then
+                    if [ ${SHELL_BRANCH:0:1} = 9 -o ${SHELL_BRANCH:0:1} = 2 ]; then
                         yum -y install gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ gcc-toolset-14-binutils gcc-toolset-14-annobin-annocheck gcc-toolset-14-annobin-plugin-gcc
                         update-alternatives --install /usr/bin/cc cc /opt/rh/gcc-toolset-14/root/bin/cc 80
                         update-alternatives --install /usr/bin/gcc gcc /opt/rh/gcc-toolset-14/root/bin/gcc 80
@@ -1331,9 +1331,11 @@ build_source_deb(){
     mv ${TARFILE} ${NEWTAR}
     tar xzf ${NEWTAR}
     cd mysql-shell-${VERSION}
+    sed -i 's:native:quilt:g' debian/source/format
     sed -i 's|Source: mysql-shell|Source: percona-mysql-shell|' debian/control
     sed -i 's|Package: mysql-shell|Package: percona-mysql-shell|' debian/control
     sed -i 's|cmake (>= 2.8.5), ||' debian/control
+    sed -i 's|cmake, ||' debian/control
     sed -i 's|mysql-shell|percona-mysql-shell|' debian/changelog
     sed -i 's|${misc:Depends},|${misc:Depends}, python3|' debian/control
     sed -i 's|(>=0.9.2)||' debian/control
