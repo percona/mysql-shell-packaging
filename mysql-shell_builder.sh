@@ -608,6 +608,8 @@ build_oci_sdk(){
                 pip3 uninstall -y cffi
         fi
     fi
+    # always ship the latest msgpack and urllib3 in the bundled OCI SDK
+    pip install --upgrade msgpack urllib3
     rm -f /oci_sdk/.gitignore
     mv oci_sdk ${WORKDIR}/
     cd ../
@@ -734,6 +736,7 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install oci
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install "setuptools>=82.0.0"
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade msgpack urllib3
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y cffi
     find / -type f -name "*.whl" -exec rm -vf {} \;
 }
