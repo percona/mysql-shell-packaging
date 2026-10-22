@@ -867,6 +867,15 @@ install_deps() {
             build_python
             #build_oci_sdk
         else
+            export DEBIAN="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+            if [ "${DEBIAN}" == "bullseye" ]; then
+                sed -i -E '/bullseye(-security|-updates)?[[:space:]]/d' /etc/apt/sources.list
+cat <<'EOF' | tee -a /etc/apt/sources.list
+deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260830T000000Z/ bullseye main
+deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260830T000000Z/ bullseye-updates main
+deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260830T000000Z/ bullseye-security main
+EOF
+            fi
             yum -y install git
             yum -y install gcc openssl-devel bzip2-devel libffi libffi-devel
             yum -y install https://repo.percona.com/prel/yum/release/latest/RPMS/x86_64/percona-release-1.0-27.noarch.rpm
