@@ -608,6 +608,8 @@ build_oci_sdk(){
                 pip3 uninstall -y cffi
         fi
     fi
+    # always ship the latest msgpack and urllib3 in the bundled OCI SDK
+    pip install --upgrade msgpack urllib3
     rm -f /oci_sdk/.gitignore
     mv oci_sdk ${WORKDIR}/
     cd ../
@@ -734,6 +736,7 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install oci
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install "setuptools>=82.0.0"
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade msgpack urllib3
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y cffi
     find / -type f -name "*.whl" -exec rm -vf {} \;
 }
@@ -947,6 +950,15 @@ install_deps() {
             g++ --version
         fi
     else #========================================> OS: deb
+        export DIST="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+        if [ "${DIST}" == "bullseye" ]; then
+            sed -i -E '/bullseye(-security|-updates)?[[:space:]]/d' /etc/apt/sources.list
+cat <<'EOF' | tee -a /etc/apt/sources.list
+deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260830T000000Z/ bullseye main
+deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260830T000000Z/ bullseye-updates main
+deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260830T000000Z/ bullseye-security main
+EOF
+        fi
         apt-get update
         sleep 20
         apt-get -y install dirmngr || true
@@ -954,7 +966,6 @@ install_deps() {
         wget --no-check-certificate https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
         percona-release enable tools testing
         export DEBIAN_FRONTEND="noninteractive"
-        export DIST="$(lsb_release -sc)"
         until apt-get update; do
             sleep 10
             echo "waiting"
