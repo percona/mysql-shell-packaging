@@ -608,8 +608,8 @@ build_oci_sdk(){
                 pip3 uninstall -y cffi
         fi
     fi
-    # always ship the latest msgpack and urllib3 in the bundled OCI SDK
-    pip install --upgrade msgpack urllib3
+    # always ship the latest pip (and its vendored msgpack/urllib3), msgpack and urllib3 in the bundled OCI SDK
+    pip install --upgrade pip msgpack urllib3
     rm -f /oci_sdk/.gitignore
     mv oci_sdk ${WORKDIR}/
     cd ../
