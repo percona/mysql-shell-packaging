@@ -738,7 +738,9 @@ build_python(){
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade setuptools
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip install --upgrade msgpack urllib3
     /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y cffi
-    find / -type f -name "*.whl" -exec rm -vf {} \;
+    # remove wheels only from the bundled Python; system wheels (e.g. /usr/share/python3-wheels)
+    # are required by the system virtualenv used in build_oci_sdk
+    find /usr/local/python3${arraypversion[1]} -type f -name "*.whl" -exec rm -vf {} \;
 }
 
 install_deps() {
@@ -813,6 +815,8 @@ install_deps() {
             yum -y install cmake
             yum -y install libcmocka-devel
             yum -y install libffi-devel
+            # needed to build _bz2, _lzma and _sqlite3 modules of the bundled Python
+            yum -y install bzip2-devel xz-devel sqlite-devel
             yum -y install libuuid-devel pkgconf-pkg-config
             yum -y install patchelf
             yum -y install libudev-devel
@@ -1004,6 +1008,8 @@ EOF
         apt-get -y install python3 python3-pip
         apt-get -y install python3-dev || true
         apt-get -y install libffi-dev || true
+        # needed to build _bz2, _lzma and _sqlite3 modules of the bundled Python
+        apt-get -y install libbz2-dev liblzma-dev libsqlite3-dev || true
         PIP_UTIL="pip3"
         if [ "x${DIST}" = "xnoble" -o "x${DIST}" = "xbookworm" -o "x${DIST}" = "xtrixie" -o "x${DIST}" = "xresolute" ]; then
             apt-get -y install pipx
