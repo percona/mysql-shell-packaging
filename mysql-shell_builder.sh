@@ -741,6 +741,10 @@ build_python(){
     # remove wheels only from the bundled Python; system wheels (e.g. /usr/share/python3-wheels)
     # are required by the system virtualenv used in build_oci_sdk
     find /usr/local/python3${arraypversion[1]} -type f -name "*.whl" -exec rm -vf {} \;
+    # pip is not needed at runtime and carries its own vendored (often outdated) copies of
+    # msgpack, urllib3, setuptools etc. that security scanners flag, so drop it from the bundled Python
+    /usr/local/python3${arraypversion[1]}/bin/python3.${arraypversion[1]} -m pip uninstall -y pip
+    rm -rf /usr/local/python3${arraypversion[1]}/lib/python3.${arraypversion[1]}/site-packages/pip
 }
 
 install_deps() {
