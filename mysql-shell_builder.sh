@@ -1395,7 +1395,7 @@ build_deb(){
         get_deb_sources $file
     done
     cd $WORKDIR
-    rm -fv *.deb
+    rm -fv *.deb *.ddeb
     export DEBIAN_VERSION="$(lsb_release -sc)"
     export CURRENT_YEAR="$(date +%Y)"
     DSC=$(basename $(find . -name '*.dsc' | sort | tail -n 1))
@@ -1450,6 +1450,13 @@ build_deb(){
     dch -b -m -D "$DEBIAN_VERSION" --force-distribution -v "${VERSION}-${RELEASE}-${DEB_RELEASE}.${DEBIAN_VERSION}" 'Update distribution'
     dpkg-buildpackage -rfakeroot -uc -us -b
     cd ${WORKDIR}
+    # Ubuntu's debhelper hard-codes the .ddeb extension for automatic dbgsym
+    # packages; rename them to .deb so they are collected and published like
+    # on Debian (the payload is a regular deb archive).
+    for ddeb in $WORKDIR/*.ddeb; do
+        [ -e "${ddeb}" ] || continue
+        mv -v "${ddeb}" "${ddeb%.ddeb}.deb"
+    done
     mkdir -p $CURDIR/deb
     mkdir -p $WORKDIR/deb
     cp $WORKDIR/*.deb $WORKDIR/deb
