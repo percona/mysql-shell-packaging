@@ -251,6 +251,11 @@ get_database(){
         git submodule init
         git submodule update
         patch -p0 < build-ps/rpm/mysql-5.7-sharedlib-rename.patch
+        # The rename patch does not cover authentication_webauthn; without this the
+        # plugin fails to link (-lperconaserverclient) and libfido2 is not bundled
+        if [ -f libmysql/authentication_webauthn/CMakeLists.txt ]; then
+            sed -i 's/^\(\s*\)perconaserverclient$/\1mysqlclient/' libmysql/authentication_webauthn/CMakeLists.txt
+        fi
         if [[ $RHEL = 8 && ${SHELL_BRANCH:2:1} = 1 ]]; then
             sed -i 's:gcc-toolset-12:gcc-toolset-11:g' CMakeLists.txt
         fi
@@ -348,15 +353,15 @@ get_database(){
     #    sed -i '/FILE(GLOB BUNDLED_ABSEIL_LIBRARIES/a\    list(APPEND PROTOBUF_LIBRARIES ${BUNDLED_ABSEIL_LIBRARIES})'   ../cmake/protobuf.cmake
     #fi
 
-    cmake --build . --target authentication_oci_client -j$(nproc)
-    cmake --build . --target mysqlclient -j$(nproc)
-    cmake --build . --target mysqlxclient -j$(nproc)
+    cmake --build . --target authentication_oci_client -j$(nproc) || exit 1
+    cmake --build . --target mysqlclient -j$(nproc) || exit 1
+    cmake --build . --target mysqlxclient -j$(nproc) || exit 1
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
-        cmake --build . --target libprotobuf -j$(nproc)
+        cmake --build . --target libprotobuf -j$(nproc) || exit 1
     else
-        cmake --build . --target mysqlxclient_lite -j$(nproc)
-        cmake --build . --target mysqlxmessages_lite -j$(nproc)
-        cmake --build . --target libprotobuf-lite -j$(nproc)
+        cmake --build . --target mysqlxclient_lite -j$(nproc) || exit 1
+        cmake --build . --target mysqlxmessages_lite -j$(nproc) || exit 1
+        cmake --build . --target libprotobuf-lite -j$(nproc) || exit 1
     fi
     cmake --build . --target gmock -j$(nproc)
     cmake --build . --target gmock_main -j$(nproc)
@@ -382,18 +387,18 @@ get_database(){
         absl_strings_internal absl_symbolize absl_synchronization \
         absl_throw_delegate absl_time absl_time_zone
     if [ ${SHELL_BRANCH:2:1} = 0 ]; then
-        cmake --build . --target authentication_fido_client -j$(nproc)
+        cmake --build . --target authentication_fido_client -j$(nproc) || exit 1
     fi
-    cmake --build . --target authentication_ldap_sasl_client -j$(nproc)
-    cmake --build . --target authentication_kerberos_client -j$(nproc)
+    cmake --build . --target authentication_ldap_sasl_client -j$(nproc) || exit 1
+    cmake --build . --target authentication_kerberos_client -j$(nproc) || exit 1
     if [ ${SHELL_BRANCH:2:1} != 0 ]; then
-        cmake --build . --target authentication_webauthn_client -j$(nproc)
+        cmake --build . --target authentication_webauthn_client -j$(nproc) || exit 1
     fi
     if [ ${SHELL_BRANCH:0:1} = 9 -o ${SHELL_BRANCH:0:1} = 2 ]; then
-        cmake --build . --target authentication_openid_connect_client -j$(nproc)
-        cmake --build . --target mysql_native_password -j$(nproc)
-        cmake --build . --target mysqlbinlog -j$(nproc)
-        cmake --build . --target mysql_binlog_event_standalone -j$(nproc)
+        cmake --build . --target authentication_openid_connect_client -j$(nproc) || exit 1
+        cmake --build . --target mysql_native_password -j$(nproc) || exit 1
+        cmake --build . --target mysqlbinlog -j$(nproc) || exit 1
+        cmake --build . --target mysql_binlog_event_standalone -j$(nproc) || exit 1
         cp -v ../router/src/routing_guidelines/src/parser.cc router/src/routing_guidelines/src/
     fi
     patchelf --debug --set-rpath '$ORIGIN' library_output_directory/lib*.so*
