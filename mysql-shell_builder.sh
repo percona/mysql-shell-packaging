@@ -674,9 +674,9 @@ build_python(){
     get_system
     cd ${WORKDIR}
     if [ "x$OS" = "xrpm" ]; then
-        pversion="3.11.13"
+        pversion="3.11.18"
     else # OS=deb
-        pversion="3.12.11"
+        pversion="3.12.16"
     fi
     arraypversion=(${pversion//\./ })
     wget -nv --no-check-certificate https://www.python.org/ftp/python/${pversion}/Python-${pversion}.tgz
